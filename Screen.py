@@ -13,7 +13,7 @@ class Screen:
         outVol = []
         maxVol = self.plate.max_volume
         for conc in outConc:
-            outVol.append(compound.dilute(outConc, maxVol))
+            outVol.append(compound.dilute(conc, maxVol))
         return outVol
 
 class oneD(Screen):
@@ -67,6 +67,6 @@ class threeD(Screen):
         for compound in self.compounds:
             if isinstance(compound,Salt) or isinstance(compound, Precipitate):
                 outConc = self.getOutConc(compound)
-                out = self.calcConcentration(self.compound,outConc)
+                out = self.calcConcentration(compound,outConc)
                 dict[compound] = out
         return dict
