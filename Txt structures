@@ -1,0 +1,34 @@
+******************************
+**STRUCTURE OF PARAMETER.TXT**
+******************************
+
+Pipette1
+Left or right
+Pipette2
+Left or right
+
+Tiprack1
+Position
+Tiprack2
+Position
+
+Plate
+Position
+
+(Screens)
+1
+Dimensions (1D, 2D, 3D)
+Compounds (by label)
+Ranges
+
+(All parts of the file are separated by a blank line (thus 2 \n characters)
+
+
+********************************
+**STRUCTURE OF COMPLIBRARY.TXT**
+********************************
+
+StockConcentration
+Label
+
+(All parts of the file are separated by a blank line (thus 2 \n characters)
