@@ -1,0 +1,7 @@
+opentrons_96_tiprack_300ul
+1
+nest_12_reservoir_15ml
+2
+nest_96_wellplate_200ul_flat
+3
+p300_single_gen2
