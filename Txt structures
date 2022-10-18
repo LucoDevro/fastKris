@@ -2,15 +2,15 @@
 **STRUCTURE OF PARAMETER.TXT**
 ******************************
 
-Pipette1
-Left or right
-Pipette2
-Left or right
-
 Tiprack1
 Position
 Tiprack2
 Position
+
+Pipette1
+Left or right
+Pipette2
+Left or right
 
 Plate
 Position
