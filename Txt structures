@@ -2,24 +2,29 @@
 **STRUCTURE OF PARAMETER.TXT**
 ******************************
 
+(Tips)
 Tiprack1
 Position
 Tiprack2
 Position
 
+(Instruments)
 Pipette1
 Left or right
 Pipette2
 Left or right
 
+(Plates)
 Plate
 Position
 
 (Screens)
-1
-Dimensions (1D, 2D, 3D)
+Number of dimensions
 Compounds (by label)
+Varied compound (by index)
 Ranges
+Plate number
+Working volume
 
 (All parts of the file are separated by a blank line (thus 2 \n characters)
 
@@ -28,7 +33,8 @@ Ranges
 **STRUCTURE OF COMPLIBRARY.TXT**
 ********************************
 
-StockConcentration
 Label
+Type
+StockConcentration
 
 (All parts of the file are separated by a blank line (thus 2 \n characters)

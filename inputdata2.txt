@@ -14,10 +14,14 @@ corning_96_wellplate_360ul_flat
 6
 
 1
-NaCl
+NaCl (1M),EDTA (10%),Acetate buffer (pH 7)
+0
 0.1-10
 3
+100
 2
-NaCl,EDTA
+NaCl (1M),EDTA (10%),Acetate buffer (pH 7)
+0,1
 0.1-10,1-20
 6
+100
