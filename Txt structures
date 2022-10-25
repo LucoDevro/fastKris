@@ -21,10 +21,9 @@ Position
 (Screens)
 Number of dimensions
 Compounds (by label)
-Varied compound (by index)
 Ranges
 Plate number
-Working volume
+Working volume (in uL)
 
 (All parts of the file are separated by a blank line (thus 2 \n characters)
 
