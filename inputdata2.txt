@@ -1,7 +1,7 @@
 opentrons_96_tiprack_300ul
-1
+10
 opentrons_96_tiprack_300ul
-2
+11
 
 p300_single_gen2
 left
@@ -9,19 +9,17 @@ p300_single_gen2
 right
 
 corning_96_wellplate_360ul_flat
-3
+1
 corning_96_wellplate_360ul_flat
-6
+2
 
 1
 NaCl (1M),EDTA (10%),Acetate buffer (pH 7)
-0
-0.1-10
-3
+0.01-0.1,1-1,10-10
+1
 100
 2
 NaCl (1M),EDTA (10%),Acetate buffer (pH 7)
-0,1
-0.1-10,1-20
-6
+0.01-0.1,0.1-1,10-10
+2
 100
