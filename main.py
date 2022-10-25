@@ -120,7 +120,7 @@ def loadLibrary():
     for i in range(len(labels)):
         if types[i].lower()=="salt":
             compLibrary[labels[i]] = Salt(float(stockConc[i]), labels[i])
-        elif types[i].lower()=="precipitate":
+        elif types[i].lower()=="precipitant":
             compLibrary[labels[i]] = Precipitant(float(stockConc[i]), labels[i])
         elif types[i].lower()=="buffer":
             compLibrary[labels[i]] = Buffer(float(stockConc[i]), labels[i])

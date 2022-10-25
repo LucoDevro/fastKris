@@ -2,7 +2,7 @@ NaCl (1M)
 Salt
 1
 EDTA (10%)
-Precipitate
+Precipitant
 10
 Acetate buffer (pH 7)
 Buffer
