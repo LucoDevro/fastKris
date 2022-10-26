@@ -62,7 +62,6 @@ def setup(protocol):
     
     # loading plates
     plates=[protocol.load_labware(platesInput[i], platesLocation[i]) for i in range(len(platesInput))]
-    print(protocol.loaded_labwares)
         
     # parsing screens
     screens_raw=lines[3].split('\n')[:-1]
@@ -85,7 +84,7 @@ def setup(protocol):
         # well working volume
         screen_workVol=int(all_screen_workVol[s])
         
-        # compound used in this particular screen
+        # compounds used in this particular screen
         screen_compounds=[compoundLibrary[i] for i in all_screen_compounds[s].split(',')]
         
         # parsing compound concentration ranges and linking them to the associated compound
@@ -138,6 +137,7 @@ def loadLibrary():
 import numpy as np
 
 class Screen:
+    
     def __init__(self, range, compounds, plate, workVol):
         self.range = range #dictionary by compound that needs a range reported
         self.compounds = compounds #a list
@@ -147,7 +147,7 @@ class Screen:
     def calcConcentration(self,compound, outConc):
         outVol = []
         for conc in outConc:
-            outVol.append(round(compound.dilute(conc, self.workVol),3)) # rounding up to 0.001 uL
+            outVol.append(round(compound.dilute(conc, self.workVol), 3)) # rounding up to 0.001 uL
         return outVol
 
 class oneD(Screen):
@@ -166,8 +166,10 @@ class oneD(Screen):
             outConc = self.getOutConc(compound)
             out = self.calcConcentration(compound,outConc)
             dict[compound] = out
-            totVol += np.array(out)
-        dict['MQ'] = np.round(self.workVol - totVol, 3).flatten().tolist()
+            if not(isinstance(compound, Buffer)):
+                totVol += np.array(out)
+        buffer_index = [i for i in range(len(self.compounds)) if isinstance(self.compounds[i], Buffer)][0]
+        dict[self.compounds[buffer_index]] = np.round(self.workVol - totVol, 3).flatten().tolist()
         return dict
             
 class twoD(Screen):
@@ -191,11 +193,13 @@ class twoD(Screen):
             out = self.calcConcentration(compound,outConc)
             if isinstance(compound, Salt):
                 out = np.tile(np.array(out), (len(self.plate.columns()[0]), 1)).flatten().tolist()
+                totVol += np.array(out)
             elif isinstance(compound, Precipitant):
                 out = np.tile(np.array(out), (len(self.plate.rows()[0]), 1)).transpose().flatten().tolist()
+                totVol += np.array(out)
             dict[compound] = out
-            totVol += np.array(out)
-        dict['MQ'] = np.round(self.workVol - totVol, 3).flatten().tolist()
+        buffer_index = [i for i in range(len(self.compounds)) if isinstance(self.compounds[i], Buffer)][0]
+        dict[self.compounds[buffer_index]] = np.round(self.workVol - totVol, 3).flatten().tolist()
         return dict
 
 # Identical to 2D class at the moment
@@ -205,7 +209,7 @@ class threeD(Screen):
         return '3D screen, ' + str(self.range) + str(self.compounds) + ' on plate ' + str(self.plate) + ' (' + str(self.workVol) + ' uL)'
 
     def getOutConc(self, compound):
-        if isinstance(compound,Salt):
+        if isinstance(compound, Salt):
             return np.linspace(start=self.range[compound][0], stop=self.range[compound][1], num=len(self.plate.rows()[0])).tolist()
         if isinstance(compound, Precipitant):
             return np.linspace(start=self.range[compound][0], stop=self.range[compound][1], num=len(self.plate.columns()[0])).tolist()
@@ -224,7 +228,8 @@ class threeD(Screen):
                 out = np.tile(np.array(out), (len(self.plate.rows()[0]), 1)).transpose().flatten().tolist()
             dict[compound] = out
             totVol += np.array(out)
-        dict['MQ'] = np.round(self.workVol - totVol, 3).flatten().tolist()
+        buffer_index = [i for i in range(len(self.compounds)) if isinstance(self.compounds[i], Buffer)][0]
+        dict[self.compounds[buffer_index]] = np.round(self.workVol - totVol, 3).flatten().tolist()
         return dict
         
 # Compound class
@@ -257,4 +262,4 @@ class Buffer(Compound):
         return self.label + ', Buffer'
     
     def dilute(self, outputConc, wellVol):
-        return wellVol/10
+        return wellVol
