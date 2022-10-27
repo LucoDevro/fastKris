@@ -12,7 +12,6 @@ class InputFrame(customtkinter.CTkFrame):
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
-        #still working on
         self.frame_up = customtkinter.CTkFrame(master = self)
         self.frame_up.columnconfigure((0,1,2,3,4,5), weight = 1)
         self.frame_up.columnconfigure((0,1), weight = 1)
@@ -25,27 +24,38 @@ class InputFrame(customtkinter.CTkFrame):
         customtkinter.CTkLabel(master=self.frame_up, text="name plate: ").grid(row=0, column=0, sticky="E")
 
         self.PlateLabel = customtkinter.CTkEntry(master= self.frame_up)
-        self.PlateLabel.grid(row=0, column=1)
-
-        customtkinter.CTkLabel(master = self.frame_up, text = "Range: " + "\t" + "from").grid(row=1, column=0, sticky="E")
-
-        self.EntryRangeMin = customtkinter.CTkEntry(master = self.frame_up)
-        self.EntryRangeMin.grid(row=1, column=1, sticky="nsew")
-
-        customtkinter.CTkLabel(master=self.frame_up, text="to").grid(row=1, column=2)
-
-        self.EntryRangeMax = customtkinter.CTkEntry(master=self.frame_up)
-        self.EntryRangeMax.grid(row=1, column=3, sticky="nsew")
+        self.PlateLabel.grid(row=0, column=1, sticky = "nsew")
 
         self.buttonApply = customtkinter.CTkButton(master=self.frame_down, text="Apply", command = self.button_event)
-        self.buttonApply.grid(column=0, row=2)
-        self.grid(column=0, row=1, padx=5, pady=5, sticky="nsew")
+        self.buttonApply.grid(column=0, row=3)
+        #change to row = 1, column = 0 to let it appear on the bottom instead of the right
+        self.grid(column=1, row=0, padx=5, pady=5, sticky="nsew")
 
     def button_event(self):
        #removes frame
        self.destroy()
 
 class ControlFrame(customtkinter.CTkFrame):
+
+    def removePipet(self):
+        Lst = self.frame_left_pipet.grid_slaves(row=2)
+        for l in Lst:
+            l.destroy()
+        self.AddPipetButton.grid()
+
+    def addPipet(self):
+        self.AddPipet2 = customtkinter.CTkEntry(master=self.frame_left_pipet)
+        self.AddPipet2.grid(row=2, column=1, sticky="nsew")
+
+        self.optionmenu_pip2 = customtkinter.CTkOptionMenu(master=self.frame_left_pipet,
+                                                          values= ["Left", "Right"], width=80)
+        self.optionmenu_pip2.grid(row=2, column=2, padx=10, sticky="nsew")
+
+        self.RemovePipetButton = customtkinter.CTkButton(master=self.frame_left_pipet,
+                                                          text = "remove", width=20,command = self.removePipet)
+        self.RemovePipetButton.grid(row=2, column=4)
+
+        self.AddPipetButton.grid_remove()
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -57,7 +67,12 @@ class ControlFrame(customtkinter.CTkFrame):
 
         self.selected_value = customtkinter.StringVar()
 
-        self.frame_left = customtkinter.CTkFrame(master=self, width = 180)
+        #setup for if two pipets available: force on Left then other Right (not implemented yet)
+        self.selected_side_pipet = customtkinter.StringVar()
+
+        #previously = 180
+        self.frame_left = customtkinter.CTkFrame(master=self, width = 390)
+        self.frame_left.grid_propagate(False)
 
         self.frame_left.grid(row=0, column=0, sticky="nsew")
 
@@ -69,10 +84,22 @@ class ControlFrame(customtkinter.CTkFrame):
         self.frame_left.grid_rowconfigure(8, minsize=20)  # empty row with minsize as spacing
         self.frame_left.grid_rowconfigure(11, minsize=10)  # empty row with minsize as spacing
 
-        self.label_1 = customtkinter.CTkLabel(master=self.frame_left,
-                                              text="Title",
-                                              text_font=("Roboto Medium", -16))  # font name and size in px
-        self.label_1.grid(row=1, column=0, pady=10, padx=10)  # put in row 1 of frame_left
+        ##ADDED
+        self.frame_left_pipet = customtkinter.CTkFrame(master = self.frame_left)
+        self.frame_left_pipet.grid(column = 0, row = 1)
+        self.AddPipetLabel = customtkinter.CTkLabel(master=self.frame_left_pipet, text="Add pipet: ", width=30)
+        self.AddPipetLabel.grid(row=0, column=0, padx = 10,sticky="nsew")
+
+        self.AddPipet = customtkinter.CTkEntry(master=self.frame_left_pipet)
+        self.AddPipet.grid(row=0, column=1, sticky="nsew")
+
+        self.optionmenu_pip = customtkinter.CTkOptionMenu(master=self.frame_left_pipet,
+                                                          values=["Left", "Right"],variable=self.selected_side_pipet, width = 80)
+        self.optionmenu_pip.grid(row=0, column=2, padx=10, sticky="nsew")
+        self.optionmenu_pip.grid_propagate(False)
+
+        self.AddPipetButton = customtkinter.CTkButton(master = self.frame_left_pipet, text = "Add...", command = self.addPipet, width = 30)
+        self.AddPipetButton.grid(row = 0, column = 4)
 
         self.label_mode = customtkinter.CTkLabel(master=self.frame_left, text="Appearance Mode:")
         self.label_mode.grid(row=9, column=0, pady=0, padx=20, sticky="w")
@@ -135,9 +162,8 @@ class ControlFrame(customtkinter.CTkFrame):
         self.button11 = customtkinter.CTkButton(master=self.frame_topleft,
                                                 text="11",
                                                 command=lambda *args: button_event(self,11))
-        self.button12 = customtkinter.CTkButton(master=self.frame_topleft,
-                                                text="12",
-                                                command=lambda *args: button_event(self,12))
+        self.button12 = customtkinter.CTkLabel(master=self.frame_topleft,
+                                                text="12", fg_color="#7393B3", corner_radius=10)
 
         self.button1.grid(row=3, column=0, pady=0, padx=0, sticky="nsew")
         self.button2.grid(row=3, column=1, pady=0, padx=0, sticky="nsew")
@@ -157,10 +183,13 @@ class ControlFrame(customtkinter.CTkFrame):
         self.button13 = customtkinter.CTkButton(master=self.frame_bottom,
                                                 text="Generate Protocol",
                                                 command=self.generate_protocol)
-        self.button13.grid(column=7, sticky="e")
+        self.button13.grid(column=7, sticky = "e")
 
         def button_event(self,index):
             #index not used for now in the application, will be important later
+            if isinstance(self.frame_right,InputFrame):
+                 #read all information to a file, to remember input (not implemented yet)
+                self.frame_right.destroy() #else if mulitple buttons pressed, all frames will stack
             self.frame_right = InputFrame(self,parent,index)
             self.frame_right.tkraise()
 
@@ -171,7 +200,6 @@ class ControlFrame(customtkinter.CTkFrame):
         pass
 
 class App(customtkinter.CTk):
-    # change to depending size screen? xy
     WIDTH = 780
     HEIGHT = 520
 
