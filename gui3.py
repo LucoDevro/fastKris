@@ -1,6 +1,7 @@
 import tkinter
 from tkinter import *
 import customtkinter
+from tkinter.font import BOLD
 
 customtkinter.set_appearance_mode("Dark")  # Modes: "Dark", "Light"
 customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
@@ -17,14 +18,38 @@ class InputFrame(customtkinter.CTkFrame):
         self.frame_up.columnconfigure((0,1), weight = 1)
         self.frame_up.grid(row=0, column=0, sticky="nsew")
 
+        self.frame_compounds = customtkinter.CTkFrame(master=self.frame_up, width = 680)
+        self.frame_compounds.grid(row=1, column=0, columnspan = 2, sticky = "ns")
+        self.frame_compounds.grid_propagate(False)
+
         self.frame_down = customtkinter.CTkFrame(master=self)
         self.frame_down.columnconfigure(0, weight = 1, uniform = "")
-        self.frame_down.grid(row=1, column=0, sticky="nsew")
+        self.frame_down.grid(row=2, column=0, sticky="nsew")
 
-        customtkinter.CTkLabel(master=self.frame_up, text="name plate: ").grid(row=0, column=0, sticky="E")
+        customtkinter.CTkLabel(master=self.frame_up, text="name plate: ").grid(row=0, column=0, sticky="W")
 
         self.PlateLabel = customtkinter.CTkEntry(master= self.frame_up)
         self.PlateLabel.grid(row=0, column=1, sticky = "nsew")
+
+        #set fixed for now, font family can be obtained dynamically (not implemented yet)
+        self.CompoundsLabel = customtkinter.CTkLabel(master = self.frame_compounds, text = "Compounds", text_font=('Segoe UI',10,BOLD))
+        self.CompoundsLabel.grid(row = 0, column = 0, sticky = "nw")
+        self.CompoundsLabel.grid_propagate(False)
+
+        self.frame_compounds.rowconfigure(2, minsize=5)  # empty row with minsize as spacing)
+        self.irow = 3
+        self.dict_compounds = {}
+
+        #width = 215 prevents the Buttons from shifting to the right when pressed
+        self.AddSalt = customtkinter.CTkButton(master = self.frame_compounds, text = "Add salt", command = self.addsalt, width = 215)
+        self.AddSalt.grid(row = 1, column = 0, padx = 5, sticky = "nw")
+        self.AddSalt.grid_propagate(False)
+        self.AddBuffer = customtkinter.CTkButton(master = self.frame_compounds, text = "Add buffer", command = self.addbuffer, width = 215)
+        self.AddBuffer.grid(row = 1, column = 1, padx = 5, sticky = "nw")
+        self.AddBuffer.grid_propagate(False)
+        self.AddPrecipitate = customtkinter.CTkButton(master=self.frame_compounds, text= "Add Precipitate", command = self.addprecipitate, width = 215)
+        self.AddPrecipitate.grid(row = 1, column = 2, padx = 5, sticky = "nw")
+        self.AddPrecipitate.grid_propagate(False)
 
         self.buttonApply = customtkinter.CTkButton(master=self.frame_down, text="Apply", command = self.button_event)
         self.buttonApply.grid(column=0, row=3)
@@ -34,6 +59,109 @@ class InputFrame(customtkinter.CTkFrame):
     def button_event(self):
        #removes frame
        self.destroy()
+
+    def addsalt(self):
+        irow = self.irow
+        frame_salt = customtkinter.CTkFrame(master = self.frame_compounds)
+        frame_salt.grid(row = irow, column = 0, columnspan = 3)
+
+        Label = customtkinter.CTkLabel(master = frame_salt, text = "label salt: ", width = 100)
+        Label.grid(row = 0, column = 0, padx = 5)
+        Label.grid_propagate(False)
+
+        CompoundLabel = customtkinter.CTkEntry(master = frame_salt)
+        CompoundLabel.grid(row = 0, column = 1)
+
+        Stock = customtkinter.CTkLabel(master=frame_salt, text="conc (M): ", width = 70)
+        Stock.grid(row = 0, column = 2, padx = 5)
+        Stock.grid_propagate(False)
+
+        CompoundStock = customtkinter.CTkEntry(master = frame_salt)
+        CompoundStock.grid(row = 0, column = 3)
+
+        Gradient = customtkinter.CTkCheckBox(master = frame_salt, text = "range")
+        Gradient.grid(row = 0, column = 4)
+
+        FromRange = customtkinter.CTkEntry(master=frame_salt, width=50)
+        FromRange.grid(row=0, column=5, padx=5)
+
+        customtkinter.CTkLabel(master=frame_salt, text="-", width=1).grid(row=0, column=6, padx=5)
+
+        ToRange = customtkinter.CTkEntry(master=frame_salt, width=50)
+        ToRange.grid(row=0, column=7, padx=5)
+
+        #update row variable for compounds
+        self.irow = self.irow + 1
+        self.dict_compounds[self.irow] = frame_salt
+
+    def addprecipitate(self):
+        irow = self.irow
+        frame_precipitate = customtkinter.CTkFrame(master=self.frame_compounds)
+        frame_precipitate.grid(row=irow, column=0, columnspan=3)
+
+        self.Label = customtkinter.CTkLabel(master=frame_precipitate, text="label precipitate: ", width=100)
+        self.Label.grid(row=0, column=0, padx=5)
+        self.Label.grid_propagate(False)
+
+        self.CompoundLabel = customtkinter.CTkEntry(master=frame_precipitate)
+        self.CompoundLabel.grid(row=0, column=1)
+
+        self.Stock = customtkinter.CTkLabel(master=frame_precipitate, text="conc (m%): ", width = 70)
+        self.Stock.grid(row=0, column=2, padx = 5)
+        self.Stock.grid_propagate(False)
+
+        self.CompoundStock = customtkinter.CTkEntry(master=frame_precipitate)
+        self.CompoundStock.grid(row=0, column=3)
+
+        Gradient = customtkinter.CTkCheckBox(master = frame_precipitate, text = "range")
+        Gradient.grid(row = 0, column = 4)
+
+        FromRange = customtkinter.CTkEntry(master=frame_precipitate, width = 50)
+        FromRange.grid(row = 0, column = 5, padx = 5)
+
+        customtkinter.CTkLabel(master=frame_precipitate, text = "-", width = 1).grid(row = 0, column = 6, padx = 5)
+
+        ToRange = customtkinter.CTkEntry(master=frame_precipitate, width = 50)
+        ToRange.grid(row=0, column=7, padx = 5)
+
+        # update row variable for compounds
+        self.irow = self.irow + 1
+        self.dict_compounds[self.irow] = frame_precipitate
+
+    def addbuffer(self):
+        irow = self.irow
+        frame_buffer = customtkinter.CTkFrame(master=self.frame_compounds)
+        frame_buffer.grid(row=irow, column=0, columnspan=3)
+
+        self.Label = customtkinter.CTkLabel(master=frame_buffer, text="label buffer: ", width=100)
+        self.Label.grid(row=0, column=0, padx=5)
+        self.Label.grid_propagate(False)
+
+        self.CompoundLabel = customtkinter.CTkEntry(master=frame_buffer)
+        self.CompoundLabel.grid(row=0, column=1)
+
+        self.Stock = customtkinter.CTkLabel(master=frame_buffer, text="conc (pH): ", width = 70)
+        self.Stock.grid(row=0, column=2, padx = 5)
+        self.Stock.grid_propagate(False)
+
+        self.CompoundStock = customtkinter.CTkEntry(master=frame_buffer)
+        self.CompoundStock.grid(row=0, column=3)
+
+        Gradient = customtkinter.CTkCheckBox(master = frame_buffer, text = "range")
+        Gradient.grid(row = 0, column = 4)
+
+        FromRange = customtkinter.CTkEntry(master=frame_buffer, width = 50)
+        FromRange.grid(row = 0, column = 5, padx = 5)
+
+        customtkinter.CTkLabel(master=frame_buffer, text = "-", width = 1).grid(row = 0, column = 6, padx = 5)
+
+        ToRange = customtkinter.CTkEntry(master=frame_buffer, width = 50)
+        ToRange.grid(row=0, column=7, padx = 5)
+
+        # update row variable for compounds
+        self.irow = self.irow + 1
+        self.dict_compounds[self.irow] = frame_buffer
+
 
 class ControlFrame(customtkinter.CTkFrame):
 
