@@ -44,7 +44,7 @@ class InputFrame(customtkinter.CTkFrame):
         self.CompoundsLabel.grid_propagate(False)
 
         self.frame_compounds.rowconfigure(2, minsize=5)  # empty row with minsize as spacing)
-        self.irow = 3
+        self.irow = 4
         self.dict_compounds = {}
 
         # width = 215 prevents the Buttons from shifting to the right when pressed
@@ -109,19 +109,19 @@ class InputFrame(customtkinter.CTkFrame):
         frame_precipitate = customtkinter.CTkFrame(master=self.frame_compounds)
         frame_precipitate.grid(row=irow, column=0, columnspan=3)
 
-        self.Label = customtkinter.CTkLabel(master=frame_precipitate, text="label precipitate: ", width=100)
-        self.Label.grid(row=0, column=0, padx=5)
-        self.Label.grid_propagate(False)
+        Label = customtkinter.CTkLabel(master=frame_precipitate, text="label precipitate: ", width=100)
+        Label.grid(row=0, column=0, padx=5)
+        Label.grid_propagate(False)
 
-        self.CompoundLabel = customtkinter.CTkEntry(master=frame_precipitate)
-        self.CompoundLabel.grid(row=0, column=1)
+        CompoundLabel = customtkinter.CTkEntry(master=frame_precipitate)
+        CompoundLabel.grid(row=0, column=1)
 
-        self.Stock = customtkinter.CTkLabel(master=frame_precipitate, text="conc (m%): ", width=70)
-        self.Stock.grid(row=0, column=2, padx=5)
-        self.Stock.grid_propagate(False)
+        Stock = customtkinter.CTkLabel(master=frame_precipitate, text="conc (m%): ", width=70)
+        Stock.grid(row=0, column=2, padx=5)
+        Stock.grid_propagate(False)
 
-        self.CompoundStock = customtkinter.CTkEntry(master=frame_precipitate)
-        self.CompoundStock.grid(row=0, column=3)
+        CompoundStock = customtkinter.CTkEntry(master=frame_precipitate)
+        CompoundStock.grid(row=0, column=3)
 
         Gradient = customtkinter.CTkCheckBox(master=frame_precipitate, text="range")
         Gradient.grid(row=0, column=4)
@@ -143,19 +143,19 @@ class InputFrame(customtkinter.CTkFrame):
         frame_buffer = customtkinter.CTkFrame(master=self.frame_compounds)
         frame_buffer.grid(row=irow, column=0, columnspan=3)
 
-        self.Label = customtkinter.CTkLabel(master=frame_buffer, text="label buffer: ", width=100)
-        self.Label.grid(row=0, column=0, padx=5)
-        self.Label.grid_propagate(False)
+        Label = customtkinter.CTkLabel(master=frame_buffer, text="label buffer: ", width=100)
+        Label.grid(row=0, column=0, padx=5)
+        Label.grid_propagate(False)
 
-        self.CompoundLabel = customtkinter.CTkEntry(master=frame_buffer)
-        self.CompoundLabel.grid(row=0, column=1)
+        CompoundLabel = customtkinter.CTkEntry(master=frame_buffer)
+        CompoundLabel.grid(row=0, column=1)
 
-        self.Stock = customtkinter.CTkLabel(master=frame_buffer, text="conc (pH): ", width=70)
-        self.Stock.grid(row=0, column=2, padx=5)
-        self.Stock.grid_propagate(False)
+        Stock = customtkinter.CTkLabel(master=frame_buffer, text="conc (pH): ", width=70)
+        Stock.grid(row=0, column=2, padx=5)
+        Stock.grid_propagate(False)
 
-        self.CompoundStock = customtkinter.CTkEntry(master=frame_buffer)
-        self.CompoundStock.grid(row=0, column=3)
+        CompoundStock = customtkinter.CTkEntry(master=frame_buffer)
+        CompoundStock.grid(row=0, column=3)
 
         Gradient = customtkinter.CTkCheckBox(master=frame_buffer, text="range")
         Gradient.grid(row=0, column=4)
