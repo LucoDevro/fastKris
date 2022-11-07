@@ -4,6 +4,9 @@ Salt
 EDTA (10%)
 Precipitant
 10
-Acetate buffer (pH 7)
+Acetate buffer (1 M)
 Buffer
-7
+1
+MQ
+Diluent
+0
