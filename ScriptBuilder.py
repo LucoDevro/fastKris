@@ -5,9 +5,10 @@ with open('inputdata3.txt', 'r') as f:
     f.close()
 
 tips_raw = str(lines[0].split("\n"))
-instr_raw = str(lines[1].split("\n"))
-plates_raw = str(lines[2].split("\n"))
-screens_raw = str(lines[3].split('\n')[:-1])
+tuberack_raw = str(lines[1].split("\n"))
+instr_raw = str(lines[2].split("\n"))
+plates_raw = str(lines[3].split("\n"))
+screens_raw = str(lines[4].split('\n')[:-1])
 
 # Reading compound library
 with open('compLibrary.txt', 'r') as l:
@@ -24,6 +25,7 @@ template = open("template.py", "r")
 with open("main.py", 'w') as main:
     main.write('from opentrons import protocol_api\n\n')
     main.write('tips_raw = ' + tips_raw + "\n")
+    main.write('tuberack_raw = ' + tuberack_raw + "\n")
     main.write('instr_raw = ' + instr_raw + "\n")
     main.write('plates_raw = ' + plates_raw + "\n")
     main.write('screens_raw = ' + screens_raw + "\n\n")

@@ -10,6 +10,10 @@ Tiprack2
 Position
 Associated instrument (by position)
 
+(Tuberacks)
+Tuberack label
+Position
+
 (Instruments)
 Pipette1
 Left or right
@@ -23,6 +27,7 @@ Position
 (Screens)
 Number of dimensions
 Compounds (by label)
+Reservoir tubes of each compound (in format 'platenumber/location of tube on that plate')
 Ranges
 Plate number
 Working volume (in uL)

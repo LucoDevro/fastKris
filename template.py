@@ -1,7 +1,8 @@
 metadata = {
-    'apiLevel': '2.0',
-    'protocolName': 'Crystallization dilution',
-    'description': '''Test protocol''',
+    'apiLevel': '2.9',
+    'protocolName': 'Crystallization screen',
+    'description': '''This protocol has been automatically generated using fastKris.
+                      Manual modifications will be overwritten when fastKris would run again.''',
     'author': 'LMBD'
 }
 
@@ -9,18 +10,14 @@ def run(protocol: protocol_api.ProtocolContext):
     global compoundLibrary
     compoundLibrary = loadLibrary()
     print('Compound library loaded...')
-    [tips, instruments, plates, screens] = setup(protocol)
+    [tips, tuberacks, instruments, plates, screens] = setup(protocol)
+    pipette_capacities = [inst.max_volume for inst in instruments]
+    small_pipette = instruments[pipette_capacities.index(min(pipette_capacities))]
+    big_pipette = instruments[pipette_capacities.index(max(pipette_capacities))]
     print('Screens parsed...')
 
-    # stock solutions are located in a tube rack
-    # could be added to parameter file as well
-    stock_tuberack = protocol.load_labware('opentrons_6_tuberack_falcon_50ml_conical', 7)
-    stock_salt = stock_tuberack['A1']
-    stock_prec = stock_tuberack['B1']
-    stock_buffer = stock_tuberack['A2']
-    stock_diluent = stock_tuberack['B2']
-
     for screen in screens:
+        print("Executing Screen " + str(screens.index(screen)+1))
         vols = screen.getAllVol()
 
         # reorder the indexing of the wells so that wells are filled row by row
@@ -29,22 +26,49 @@ def run(protocol: protocol_api.ProtocolContext):
             .transpose().flatten().tolist()
         for compound in vols.keys():
 
+            print("Adding compound " + str(screen.compounds.index(compound)+1))
+            
             # selecting the correct stock solution
-            if isinstance(compound, Salt):
-                stock = stock_salt
-            elif isinstance(compound, Precipitant):
-                stock = stock_prec
-            elif isinstance(compound, Buffer):
-                stock = stock_buffer
-            elif isinstance(compound, Diluent):
-                stock = stock_diluent
+            stock = screen.reservoirs[screen.compounds.index(compound)]
+                
+            # first compound can be done with the same tip so check for it
+            first = (compound == list(vols.keys())[0])
 
             # fill the wells one by one
-            for i in range(len(well_order)):
-                # TODO: picking the right instrument
-                instruments[0].transfer(vols[compound][i], stock, screen.plate.wells()[well_order[i]])
-                print("Transferring " + str(vols[compound][i]) + " uL of " + str(compound) + \
-                      " from " + str(stock) + " into " + str(screen.plate.wells()[well_order[i]]))
+            for i in range(len(well_order)):               
+                vol = vols[compound][i]
+                # picking the most appropiate pipette according to the volume to be pipetted
+                if vol <= small_pipette.max_volume:
+                    if vol >= small_pipette.min_volume:
+                        instrument = small_pipette
+                    else:
+                        raise Exception('No suitable pipette attached!')
+                elif vol <= big_pipette.max_volume:
+                    if vol >= big_pipette.min_volume:
+                        instrument = big_pipette
+                    else:
+                        raise Exception('No suitable pipette attached!')
+                else:
+                    raise Exception('No suitable pipette attached!')
+                    
+                # Make sure the pipette is attached to a tip
+                if not(instrument.has_tip):
+                    instrument.pick_up_tip()
+                
+                # transfer the volume
+                instrument.transfer(vol, stock, screen.plate.wells()[well_order[i]], new_tip = "never", trash = True)
+                
+                # only keep the tip attached if the first compound is transferred to avoid contamination
+                if not(first):
+                    instrument.drop_tip()
+                    
+                # log to stdout
+                print("Transferring " + str(vol) + " uL of " + str(compound) + \
+                      " from " + str(stock) + " into " + str(screen.plate.wells()[well_order[i]]) + \
+                      " using " + str(instrument))
+                
+    print("Done!\n\n\n")
+    print("Output of the OpenTrons API:")
 
 
 def setup(protocol):
@@ -56,6 +80,13 @@ def setup(protocol):
     # loading pipet tips
     tips = [protocol.load_labware(tipsInput[i], tipsLocation[i]) for i in range(len(tipsInput))]
 
+    # parsing tube racks
+    tuberacksInput = tuberack_raw[0::2]
+    tuberacksLocation = tuberack_raw[1::2]
+    
+    # loading tube racks
+    tuberacks = [protocol.load_labware(tuberacksInput[i], tuberacksLocation[i]) for i in range(len(tuberacksInput))]
+
     # parsing pipetting instruments
     instrumentInput = instr_raw[0::2]
     instrumentLocation = instr_raw[1::2]
@@ -64,10 +95,8 @@ def setup(protocol):
     tips_by_instr = {}
     tips_by_instr["left"] = [tips[i] for i in range(len(tips)) if tipsPipette[i].lower() == "left"]
     tips_by_instr["right"] = [tips[i] for i in range(len(tips)) if tipsPipette[i].lower() == "right"]
-    print(tips_by_instr)
     instruments = [protocol.load_instrument(instrumentInput[i], instrumentLocation[i],
-                                            tip_racks=tips_by_instr[instrumentLocation[i].lower()]) for i in
-                   range(len(instrumentInput))]
+                    tip_racks=tips_by_instr[instrumentLocation[i].lower()]) for i in range(len(instrumentInput))]
 
     # parsing plates
     platesInput = plates_raw[0::2]
@@ -78,11 +107,12 @@ def setup(protocol):
 
     # parsing screens
     screens = []
-    all_screen_types = screens_raw[0::5]
-    all_screen_compounds = screens_raw[1::5]
-    all_screen_ranges = screens_raw[2::5]
-    all_screen_plates = screens_raw[3::5]
-    all_screen_workVol = screens_raw[4::5]
+    all_screen_types = screens_raw[0::6]
+    all_screen_compounds = screens_raw[1::6]
+    all_screen_reservoirs = screens_raw[2::6]
+    all_screen_ranges = screens_raw[3::6]
+    all_screen_plates = screens_raw[4::6]
+    all_screen_workVol = screens_raw[5::6]
     numberOfScreens = len(all_screen_types)
     for s in range(numberOfScreens):
 
@@ -98,6 +128,15 @@ def setup(protocol):
 
         # compounds used in this particular screen
         screen_compounds = [compoundLibrary[i] for i in all_screen_compounds[s].split(',')]
+        
+        # reservoirs for each compound
+        screen_reservoirs = []
+        tubes_rackAndLocation = all_screen_reservoirs[s].split(',')
+        for rl in tubes_rackAndLocation:
+            rl_split = rl.split('/')
+            r = protocol.loaded_labwares[int(rl_split[0])]
+            l = rl_split[1]
+            screen_reservoirs.append(r[l])
 
         # parsing compound concentration ranges and linking them to the associated compound
         screen_range_raw = all_screen_ranges[s].split(',')
@@ -107,16 +146,16 @@ def setup(protocol):
 
         # creating Screen objects from the parsed properties, depending on the screen type
         if screen_type == 1:
-            screen = oneD(screen_range, screen_compounds, screen_plate, screen_workVol)
+            screen = oneD(screen_range, screen_compounds, screen_plate, screen_workVol, screen_reservoirs)
         elif screen_type == 2:
-            screen = twoD(screen_range, screen_compounds, screen_plate, screen_workVol)
+            screen = twoD(screen_range, screen_compounds, screen_plate, screen_workVol, screen_reservoirs)
         elif screen_type == 3:
-            screen = threeD(screen_range, screen_compounds, screen_plate, screen_workVol)
+            screen = threeD(screen_range, screen_compounds, screen_plate, screen_workVol, screen_reservoirs)
         else:
             raise Exception('Unknown screen type.')
         screens.append(screen)
 
-    return [tips, instruments, plates, screens]
+    return [tips, tuberacks, instruments, plates, screens]
 
 
 def loadLibrary():
@@ -147,11 +186,12 @@ import numpy as np
 
 class Screen:
 
-    def __init__(self, range, compounds, plate, workVol):
+    def __init__(self, range, compounds, plate, workVol, reservoirs):
         self.range = range  # dictionary by compound that needs a range reported
         self.compounds = compounds  # a list
         self.workVol = workVol
         self.plate = plate
+        self.reservoirs = reservoirs
 
     def calcConcentration(self, compound, outConc):
         outVol = []
@@ -222,9 +262,8 @@ class twoD(Screen):
             totVol += np.array(out)
         dict[self.compounds[diluent_index]] = np.round(self.workVol - totVol, 3).flatten().tolist()
         return dict
-
-
-# Identical to 2D class at the moment
+    
+# identical to twoD at the moment
 class threeD(Screen):
 
     def __str__(self):
@@ -261,7 +300,6 @@ class threeD(Screen):
             totVol += np.array(out)
         dict[self.compounds[diluent_index]] = np.round(self.workVol - totVol, 3).flatten().tolist()
         return dict
-
 
 # Compound class
 
