@@ -3,8 +3,10 @@ metadata = {
     'protocolName': 'Crystallization screen',
     'description': '''This protocol has been automatically generated using fastKris.
                       Manual modifications will be overwritten when fastKris would run again.''',
-    'author': 'LMBD'
+    'author': 'LBMD'
 }
+
+import warnings
 
 def run(protocol: protocol_api.ProtocolContext):
     global compoundLibrary
@@ -33,10 +35,19 @@ def run(protocol: protocol_api.ProtocolContext):
                 
             # first compound can be done with the same tip so check for it
             first = (compound == list(vols.keys())[0])
+            
+            # after adding the last compound, the content will be mixed
+            last = (compound == list(vols.keys())[-1])
 
             # fill the wells one by one
             for i in range(len(well_order)):               
                 vol = vols[compound][i]
+                
+                # skip negative volumes with giving a warning
+                if vol < 0:
+                    warnings.warn('Negative diluent volume detected! Please check your concentration ranges! Skipping for now...')
+                    continue
+                
                 # picking the most appropiate pipette according to the volume to be pipetted
                 if vol <= small_pipette.max_volume:
                     if vol >= small_pipette.min_volume:
@@ -58,8 +69,12 @@ def run(protocol: protocol_api.ProtocolContext):
                 # transfer the volume
                 instrument.transfer(vol, stock, screen.plate.wells()[well_order[i]], new_tip = "never", trash = True)
                 
+                if last:
+                    instrument.mix(repetitions = 3, volume = 300)
+                
                 # only keep the tip attached if the first compound is transferred to avoid contamination
-                if not(first):
+                if (not(first) or i == len(well_order)-1):
+                    instrument.blow_out()
                     instrument.drop_tip()
                     
                 # log to stdout
@@ -118,13 +133,19 @@ def setup(protocol):
 
         # screen type (1D, 2D or 3D)
         screen_type = int(all_screen_types[s])
-
+        if not(screen_type in set([1,2,3])):
+            raise Exception('Unknown screen type!')
+        
         # parse plate number and link the plate object to it
         screen_plate = int(all_screen_plates[s])
         screen_plate = protocol.loaded_labwares[screen_plate]
-
+        
         # well working volume
         screen_workVol = int(all_screen_workVol[s])
+        if screen_workVol < 0:
+            raise Exception('Working volumes cannot be negative!')
+        if screen_workVol > screen_plate.wells()[0].max_volume:
+            raise Exception('Working volume exceeds the well volume!')
 
         # compounds used in this particular screen
         screen_compounds = [compoundLibrary[i] for i in all_screen_compounds[s].split(',')]
@@ -142,7 +163,11 @@ def setup(protocol):
         screen_range_raw = all_screen_ranges[s].split(',')
         screen_range = {}
         for c in range(len(screen_range_raw)):
-            screen_range[screen_compounds[c]] = tuple([float(i) for i in screen_range_raw[c].split('-')])
+            raw_range = [float(i) for i in screen_range_raw[c].split('-')]
+            srt_range = sorted(raw_range)
+            if not(srt_range == raw_range):
+                warnings.warn('Ranges were not given from low to high. Rearranging the values for now...')
+            screen_range[screen_compounds[c]] = tuple(srt_range)
 
         # creating Screen objects from the parsed properties, depending on the screen type
         if screen_type == 1:
@@ -160,6 +185,8 @@ def setup(protocol):
 
 def loadLibrary():
     compLibrary = {}
+    if not(len(labels) == len(set(labels))):
+        raise Exception("Duplicate labels detected! Please check your labelling!")
     for i in range(len(labels)):
         if types[i].lower() == "salt":
             compLibrary[labels[i]] = Salt(float(stockConc[i]), labels[i])
@@ -170,7 +197,7 @@ def loadLibrary():
         elif types[i].lower() == "diluent":
             compLibrary[labels[i]] = Diluent(labels[i])
         else:
-            raise Exception("Compound type not understood.")
+            raise Exception("Compound type not understood!")
 
     return compLibrary
 
@@ -222,7 +249,10 @@ class oneD(Screen):
             out = self.calcConcentration(compound, outConc)
             dict[compound] = out
             totVol += np.array(out)
-        dict[self.compounds[diluent_index]] = np.round(self.workVol - totVol, 3).flatten().tolist()
+        diluent_vol = np.round(self.workVol - totVol, 3)
+        if np.any(diluent_vol < 0):
+            warnings.warn('Negative diluent volume detected! Please check your concentration ranges!')
+        dict[self.compounds[diluent_index]] = diluent_vol.flatten().tolist()
         return dict
 
 
@@ -260,7 +290,10 @@ class twoD(Screen):
                 out = np.tile(np.array(out), (len(self.plate.rows()[0]), 1)).transpose().flatten().tolist()
             dict[compound] = out
             totVol += np.array(out)
-        dict[self.compounds[diluent_index]] = np.round(self.workVol - totVol, 3).flatten().tolist()
+        diluent_vol = np.round(self.workVol - totVol, 3)
+        if np.any(diluent_vol < 0):
+            raise Exception('Negative diluent volume detected! Please check your concentration ranges!')
+        dict[self.compounds[diluent_index]] = diluent_vol.flatten().tolist()
         return dict
     
 # identical to twoD at the moment
@@ -298,7 +331,10 @@ class threeD(Screen):
                 out = np.tile(np.array(out), (len(self.plate.rows()[0]), 1)).transpose().flatten().tolist()
             dict[compound] = out
             totVol += np.array(out)
-        dict[self.compounds[diluent_index]] = np.round(self.workVol - totVol, 3).flatten().tolist()
+        diluent_vol = np.round(self.workVol - totVol, 3)
+        if np.any(diluent_vol < 0):
+            raise Exception('Negative diluent volume detected! Please check your concentration ranges!')
+        dict[self.compounds[diluent_index]] = diluent_vol.flatten().tolist()
         return dict
 
 # Compound class
