@@ -22,6 +22,12 @@ def run(protocol: protocol_api.ProtocolContext):
     for screen in screens:
         print("Executing Screen " + str(screens.index(screen)+1))
         vols = screen.getAllVol()
+        
+        # Calculating total liquid requirements
+        total_vols = {c: round(sum(vols[c]), 3) for c in vols.keys()}
+        print("This screen needs:")
+        for c in total_vols.keys():
+            print(str(c) + ":\t" + str(total_vols[c]) + " uL")
 
         # reorder the indexing of the wells so that wells are filled row by row
         well_order = np.array(range(len(screen.plate.rows()[0]) * len(screen.plate.columns()[0]))) \
@@ -32,10 +38,8 @@ def run(protocol: protocol_api.ProtocolContext):
             print("Adding compound " + str(screen.compounds.index(compound)+1))
             
             # selecting the correct stock solution
-            stock = screen.reservoirs[screen.compounds.index(compound)]
-                
-            # first compound can be done with the same tip so check for it
-            first = (compound == list(vols.keys())[0])
+            stock = screen.stocks[screen.compounds.index(compound)]
+            stock_vol = stock.max_volume
             
             # after adding the last compound, the content will be mixed
             last = (compound == list(vols.keys())[-1])
@@ -62,17 +66,22 @@ def run(protocol: protocol_api.ProtocolContext):
                         raise Exception('No suitable pipette attached!')
                 else:
                     raise Exception('No suitable pipette attached!')
-                    
-                # get the well to prepare
-                well = screen.plate.wells()[well_order[i]]
-                    
+                
+                # adapt the instrument aspiration z position depending on the available stock volume. 
+                # ASSUMPTION: stock tubes initially are full. We'll take a large margin of 2 cm to anticipate it's not.
+                instrument.well_bottom_clearance.aspirate = max(stock_vol / stock.max_volume * stock.depth - 20, 1)
+                
                 # Make sure a tip is attached
                 if not(instrument.has_tip):
                     instrument.pick_up_tip()
+                    
+                # get the well to prepare
+                well = screen.plate.wells()[well_order[i]]
                 
                 # Transfer the volume and blow out, but keep the tip out of the liquid
                 # Only when adding the last compound, put the tip in the liquid, mix and drop the tip
                 if last:
+                    instrument.well_bottom_clearance.aspirate = 1
                     instrument.well_bottom_clearance.dispense = 1
                     instrument.transfer(vol, stock, well, new_tip = "never")
                     instrument.mix(repetitions = 3, volume = small_pipette.max_volume)
@@ -82,6 +91,9 @@ def run(protocol: protocol_api.ProtocolContext):
                     instrument.transfer(vol, stock, well, new_tip = "never")
                     instrument.blow_out()
                     
+                # substract the transferred volume from the stock volume
+                stock_vol -= vol
+                
                 # log to stdout
                 print("Transferred " + str(vol) + " uL of " + str(compound) + \
                       " from " + str(stock) + " into " + str(screen.plate.wells()[well_order[i]]) + \
@@ -133,7 +145,7 @@ def setup(protocol):
     screens = []
     all_screen_types = screens_raw[0::6]
     all_screen_compounds = screens_raw[1::6]
-    all_screen_reservoirs = screens_raw[2::6]
+    all_screen_stocks = screens_raw[2::6]
     all_screen_ranges = screens_raw[3::6]
     all_screen_plates = screens_raw[4::6]
     all_screen_workVol = screens_raw[5::6]
@@ -159,14 +171,14 @@ def setup(protocol):
         # compounds used in this particular screen
         screen_compounds = [compoundLibrary[i] for i in all_screen_compounds[s].split(',')]
         
-        # reservoirs for each compound
-        screen_reservoirs = []
-        tubes_rackAndLocation = all_screen_reservoirs[s].split(',')
+        # stocks for each compound
+        screen_stocks = []
+        tubes_rackAndLocation = all_screen_stocks[s].split(',')
         for rl in tubes_rackAndLocation:
             rl_split = rl.split('/')
             r = protocol.loaded_labwares[int(rl_split[0])]
             l = rl_split[1]
-            screen_reservoirs.append(r[l])
+            screen_stocks.append(r[l])
 
         # parsing compound concentration ranges and linking them to the associated compound
         screen_range_raw = all_screen_ranges[s].split(',')
@@ -180,9 +192,9 @@ def setup(protocol):
 
         # creating Screen objects from the parsed properties, depending on the screen type
         if screen_type == 1:
-            screen = oneD(screen_range, screen_compounds, screen_plate, screen_workVol, screen_reservoirs)
+            screen = oneD(screen_range, screen_compounds, screen_plate, screen_workVol, screen_stocks)
         elif screen_type == 2:
-            screen = twoD(screen_range, screen_compounds, screen_plate, screen_workVol, screen_reservoirs)
+            screen = twoD(screen_range, screen_compounds, screen_plate, screen_workVol, screen_stocks)
         else:
             raise Exception('Unknown screen type.')
         screens.append(screen)
@@ -215,12 +227,12 @@ def loadLibrary():
 
 class Screen:
 
-    def __init__(self, range, compounds, plate, workVol, reservoirs):
+    def __init__(self, range, compounds, plate, workVol, stocks):
         self.range = range  # dictionary by compound that needs a range reported
         self.compounds = compounds  # a list
         self.workVol = workVol
         self.plate = plate
-        self.reservoirs = reservoirs
+        self.stocks = stocks
 
     def calcConcentration(self, compound, outConc):
         outVol = []
