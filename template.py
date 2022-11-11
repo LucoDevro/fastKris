@@ -2,11 +2,12 @@ metadata = {
     'apiLevel': '2.9',
     'protocolName': 'Crystallization screen',
     'description': '''This protocol has been automatically generated using fastKris.
-                      Manual modifications will be overwritten when fastKris would run again.''',
+                      Manual modifications will be overwritten when rerunning fastKris.''',
     'author': 'LBMD'
 }
 
 import warnings
+import numpy as np
 
 def run(protocol: protocol_api.ProtocolContext):
     global compoundLibrary
@@ -26,8 +27,8 @@ def run(protocol: protocol_api.ProtocolContext):
         well_order = np.array(range(len(screen.plate.rows()[0]) * len(screen.plate.columns()[0]))) \
             .reshape(len(screen.plate.rows()[0]), len(screen.plate.columns()[0])) \
             .transpose().flatten().tolist()
+            
         for compound in vols.keys():
-
             print("Adding compound " + str(screen.compounds.index(compound)+1))
             
             # selecting the correct stock solution
@@ -43,7 +44,7 @@ def run(protocol: protocol_api.ProtocolContext):
             for i in range(len(well_order)):               
                 vol = vols[compound][i]
                 
-                # skip negative volumes with giving a warning
+                # skip negative volumes with a warning
                 if vol < 0:
                     warnings.warn('Negative diluent volume detected! Please check your concentration ranges! Skipping for now...')
                     continue
@@ -62,29 +63,37 @@ def run(protocol: protocol_api.ProtocolContext):
                 else:
                     raise Exception('No suitable pipette attached!')
                     
-                # Make sure the pipette is attached to a tip
+                # get the well to prepare
+                well = screen.plate.wells()[well_order[i]]
+                    
+                # Make sure a tip is attached
                 if not(instrument.has_tip):
                     instrument.pick_up_tip()
                 
-                # transfer the volume
-                instrument.transfer(vol, stock, screen.plate.wells()[well_order[i]], new_tip = "never", trash = True)
-                
+                # Transfer the volume and blow out, but keep the tip out of the liquid
+                # Only when adding the last compound, put the tip in the liquid, mix and drop the tip
                 if last:
-                    instrument.mix(repetitions = 3, volume = 300)
-                
-                # only keep the tip attached if the first compound is transferred to avoid contamination
-                if (not(first) or i == len(well_order)-1):
-                    instrument.blow_out()
+                    instrument.well_bottom_clearance.dispense = 1
+                    instrument.transfer(vol, stock, well, new_tip = "never")
+                    instrument.mix(repetitions = 3, volume = small_pipette.max_volume)
                     instrument.drop_tip()
+                else:
+                    instrument.well_bottom_clearance.dispense = well.depth
+                    instrument.transfer(vol, stock, well, new_tip = "never")
+                    instrument.blow_out()
                     
                 # log to stdout
-                print("Transferring " + str(vol) + " uL of " + str(compound) + \
+                print("Transferred " + str(vol) + " uL of " + str(compound) + \
                       " from " + str(stock) + " into " + str(screen.plate.wells()[well_order[i]]) + \
                       " using " + str(instrument))
                 
-    print("Done!\n\n\n")
-    print("Output of the OpenTrons API:")
-
+            # drop any tips when ready with a compound
+            if small_pipette.has_tip:
+                small_pipette.drop_tip()
+            if big_pipette.has_tip:
+                big_pipette.drop_tip()
+                
+    print("DONE!\n\n\n")
 
 def setup(protocol):
     # parsing pipet tips
@@ -133,7 +142,7 @@ def setup(protocol):
 
         # screen type (1D, 2D or 3D)
         screen_type = int(all_screen_types[s])
-        if not(screen_type in set([1,2,3])):
+        if not(screen_type in set([1,2])):
             raise Exception('Unknown screen type!')
         
         # parse plate number and link the plate object to it
@@ -174,8 +183,6 @@ def setup(protocol):
             screen = oneD(screen_range, screen_compounds, screen_plate, screen_workVol, screen_reservoirs)
         elif screen_type == 2:
             screen = twoD(screen_range, screen_compounds, screen_plate, screen_workVol, screen_reservoirs)
-        elif screen_type == 3:
-            screen = threeD(screen_range, screen_compounds, screen_plate, screen_workVol, screen_reservoirs)
         else:
             raise Exception('Unknown screen type.')
         screens.append(screen)
@@ -203,13 +210,8 @@ def loadLibrary():
 
 
 ### Supporting classes ###
-# Provisionary defined here as the OpenTrons simulation protocol bundle does not find the separate class files
-
+    
 # Screen class
-
-# from Compound import *
-import numpy as np
-
 
 class Screen:
 
@@ -260,47 +262,6 @@ class twoD(Screen):
 
     def __str__(self):
         return '2D screen, ' + str(self.range) + str(self.compounds) + ' on plate ' + str(self.plate) + ' (' + str(
-            self.workVol) + ' uL)'
-
-    def getOutConc(self, compound, dimension):
-        if dimension == 'h':
-            return np.linspace(start=self.range[compound][0], stop=self.range[compound][1],
-                               num=len(self.plate.rows()[0])).tolist()
-        elif dimension == 'v':
-            return np.linspace(start=self.range[compound][0], stop=self.range[compound][1],
-                               num=len(self.plate.columns()[0])).tolist()
-        elif dimension == 'a':
-            return np.linspace(start=self.range[compound][0], stop=self.range[compound][1],
-                               num=len(self.plate.wells())).tolist()
-
-    def getAllVol(self):
-        dict = {}
-        totVol = np.zeros(len(self.plate.rows()[0]) * len(self.plate.columns()[0]))
-        dimensions = ['h', 'v', 'a']
-        for compound in self.compounds:
-            if isinstance(compound, Diluent):
-                diluent_index = self.compounds.index(compound)
-                continue
-            dimension = dimensions[self.compounds.index(compound)]
-            outConc = self.getOutConc(compound, dimension)
-            out = self.calcConcentration(compound, outConc)
-            if dimension == 'h':
-                out = np.tile(np.array(out), (len(self.plate.columns()[0]), 1)).flatten().tolist()
-            elif dimension == 'v':
-                out = np.tile(np.array(out), (len(self.plate.rows()[0]), 1)).transpose().flatten().tolist()
-            dict[compound] = out
-            totVol += np.array(out)
-        diluent_vol = np.round(self.workVol - totVol, 3)
-        if np.any(diluent_vol < 0):
-            raise Exception('Negative diluent volume detected! Please check your concentration ranges!')
-        dict[self.compounds[diluent_index]] = diluent_vol.flatten().tolist()
-        return dict
-    
-# identical to twoD at the moment
-class threeD(Screen):
-
-    def __str__(self):
-        return '3D screen, ' + str(self.range) + str(self.compounds) + ' on plate ' + str(self.plate) + ' (' + str(
             self.workVol) + ' uL)'
 
     def getOutConc(self, compound, dimension):
