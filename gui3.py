@@ -2,6 +2,9 @@ import tkinter
 from tkinter import *
 import customtkinter
 from tkinter.font import BOLD
+from tkinter import filedialog as fd
+import os
+import re
 
 customtkinter.set_appearance_mode("Dark")  # Modes: "Dark", "Light"
 customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
@@ -10,7 +13,10 @@ customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "gre
 class InputFrame(customtkinter.CTkFrame):
     def __init__(self, control, parent, index):
         super().__init__(parent)
+        self.units = {"salt":"M","precipitate":"m%","buffer": "M"}
+        self.units_paramfile = {"salt":"M","precipitate":"%","buffer": "M"}
         self.index = index
+        self.parent = parent
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
@@ -34,45 +40,181 @@ class InputFrame(customtkinter.CTkFrame):
 
         customtkinter.CTkLabel(master=self.frame_up, text="add to plate:").grid(row=1, column=0, sticky="W")
         self.PlateOptionMenu = customtkinter.CTkOptionMenu(master=self.frame_up,
-                                                           values=["Reservoir", "Tip rack", "Well plate"])
+                                                           values=["Choose...","Tube rack", "Tip rack", "Well plate"],
+                                                           command= self.CompoundsFrameEvent)
+
         self.PlateOptionMenu.grid(row=1, column=1, sticky="nsew")
 
         # set fixed for now, font family can be obtained dynamically (not implemented yet)
-        self.CompoundsLabel = customtkinter.CTkLabel(master=self.frame_compounds, text="Compounds",
-                                                     text_font=('Segoe UI', 10, BOLD))
-        self.CompoundsLabel.grid(row=2, column=0, sticky="nw")
-        self.CompoundsLabel.grid_propagate(False)
+        #put in a separate frame to adapt when necessary
+
+        self.frame_Compounds_input = customtkinter.CTkFrame(master = self.frame_compounds, width = 700)
+        self.frame_Compounds_input.grid()
+        self.frame_Compounds_input.propagate(False)
 
         self.frame_compounds.rowconfigure(2, minsize=5)  # empty row with minsize as spacing)
-        self.irow = 4
+        self.irow = 7
         self.dict_compounds = {}
-
-        # width = 215 prevents the Buttons from shifting to the right when pressed
-        self.AddSalt = customtkinter.CTkButton(master=self.frame_compounds, text="Add salt", command=self.addsalt,
-                                               width=215)
-        self.AddSalt.grid(row=3, column=0, padx=5, sticky="nw")
-        self.AddSalt.grid_propagate(False)
-        self.AddBuffer = customtkinter.CTkButton(master=self.frame_compounds, text="Add buffer", command=self.addbuffer,
-                                                 width=215)
-        self.AddBuffer.grid(row=3, column=1, padx=5, sticky="nw")
-        self.AddBuffer.grid_propagate(False)
-        self.AddPrecipitate = customtkinter.CTkButton(master=self.frame_compounds, text="Add Precipitate",
-                                                      command=self.addprecipitate, width=215)
-        self.AddPrecipitate.grid(row=3, column=2, padx=5, sticky="nw")
-        self.AddPrecipitate.grid_propagate(False)
 
         self.buttonApply = customtkinter.CTkButton(master=self.frame_down, text="Apply", command=self.button_event)
         self.buttonApply.grid(column=0, row=3)
         # change to row = 1, column = 0 to let it appear on the bottom instead of the right
         self.grid(column=1, row=0, padx=5, pady=5, sticky="nsew")
 
+    def CompoundsFrameEvent(self, choice):
+        if choice == "Tip rack":
+            self.frame_Compounds_input.destroy()
+
+            self.frame_Compounds_input = customtkinter.CTkFrame(master=self.frame_compounds, width=700)
+            self.frame_Compounds_input.grid(sticky="nw")
+            self.frame_Compounds_input.propagate(False)
+
+            self.AssignedPipetLabel = customtkinter.CTkLabel(master=self.frame_Compounds_input,
+                                                             text="Assigned to pipet:",
+                                                             text_font=('Segoe UI', 10, BOLD))
+            self.AssignedPipetLabel.grid(row=2, column=0, sticky="nw")
+
+            self.AssignedPipetOption = customtkinter.CTkOptionMenu(master=self.frame_Compounds_input,
+                                                                   values=["Left", "Right"])
+            self.AssignedPipetOption.grid(row=2, column=1, sticky="nw")
+
+        elif choice == "Tube rack":
+            self.frame_Compounds_input.destroy()
+            self.frame_Compounds_input = customtkinter.CTkFrame(master=self.frame_compounds, width=700)
+            self.frame_Compounds_input.grid(sticky = "nw")
+            self.frame_Compounds_input.propagate(False)
+
+            self.CompoundsLabel = customtkinter.CTkLabel(master=self.frame_Compounds_input, text="Compounds",
+                                                         text_font=('Segoe UI', 10, BOLD))
+            self.CompoundsLabel.grid(row=2, column=0, sticky="nw")
+            self.CompoundsLabel.grid_propagate(False)
+
+            self.AddSalt = customtkinter.CTkButton(master=self.frame_Compounds_input, text="Add salt",
+                                                   command=self.addsalt,
+                                                   width=215)
+            self.AddSalt.grid(row=3, column=0, padx=5, sticky="nw")
+            self.AddSalt.grid_propagate(False)
+            self.AddBuffer = customtkinter.CTkButton(master=self.frame_Compounds_input, text="Add buffer",
+                                                     command= self.addbuffer,
+                                                     width=215)
+            self.AddBuffer.grid(row=3, column=1, padx=5, sticky="nw")
+            self.AddBuffer.grid_propagate(False)
+            self.AddPrecipitate = customtkinter.CTkButton(master=self.frame_Compounds_input, text="Add Precipitate",
+                                                          command=self.addprecipitate, width=215)
+            self.AddPrecipitate.grid(row=3, column=2, padx=5, sticky="nw")
+            self.AddPrecipitate.grid_propagate(False)
+
+        elif choice == "Well plate":
+            self.frame_Compounds_input.destroy()
+            self.frame_Compounds_input = customtkinter.CTkFrame(master=self.frame_compounds, width=700)
+            self.frame_Compounds_input.grid()
+            self.frame_Compounds_input.propagate(False)
+
+            self.CompoundsLabel = customtkinter.CTkLabel(master=self.frame_Compounds_input, text="Compounds",
+                                                         text_font=('Segoe UI', 10, BOLD))
+            self.CompoundsLabel.grid(row=2, column=0, sticky="nw")
+            self.CompoundsLabel.grid_propagate(False)
+
+            self.WorkingVolumeLabel = customtkinter.CTkLabel(master=self.frame_Compounds_input,
+                                                             text= "working volume (µl): ")
+            self.WorkingVolumeLabel.grid(row=3, column=0)
+
+            self.WorkingVolume = customtkinter.CTkEntry(master=self.frame_Compounds_input)
+            self.WorkingVolume.grid(row=3, column=1)
+
+            self.TubeRackLabel = customtkinter.CTkLabel(master=self.frame_Compounds_input,
+                                                             text="tube rack position: ")
+            self.TubeRack = customtkinter.CTkEntry(master=self.frame_Compounds_input)
+            self.TubeRackLabel.grid(row=4, column=0)
+            self.TubeRack.grid(row=4, column=1)
+
+            self.frame_Compounds_input.grid_rowconfigure(5, minsize=5)  # empty row with minsize as spacing
+
+            self.AddSalt = customtkinter.CTkButton(master=self.frame_Compounds_input, text="Add salt",
+                                                   command= lambda *args: self.addsalt(True),
+                                                   width=215)
+            self.AddSalt.grid(row=6, column=0, padx=5, sticky="nw")
+            self.AddSalt.grid_propagate(False)
+            self.AddBuffer = customtkinter.CTkButton(master=self.frame_Compounds_input, text="Add buffer",
+                                                     command= lambda *args: self.addbuffer(True),
+                                                     width=215)
+            self.AddBuffer.grid(row=6, column=1, padx=5, sticky="nw")
+            self.AddBuffer.grid_propagate(False)
+            self.AddPrecipitate = customtkinter.CTkButton(master=self.frame_Compounds_input, text="Add Precipitate",
+                                                          command= lambda *args: self.addprecipitate(True),
+                                                          width=215)
+            self.AddPrecipitate.grid(row=6, column=2, padx=5, sticky="nw")
+            self.AddPrecipitate.grid_propagate(False)
+
     def button_event(self):
+        filename = "Input_plate" + str(self.index) + ".txt"
+        completeFilename = os.path.join(self.parent.inputsPath, filename)
+
+        with open(completeFilename, "w+") as f:
+            if self.PlateOptionMenu.get() == "Tip rack":
+                f.write("Tip rack" + "\n")
+                f.write(self.PlateLabel.get() + "\n")
+                f.write(str(self.index) + "\n")
+                f.write(self.AssignedPipetOption.get() + "\n")
+
+            elif self.PlateOptionMenu.get() == "Well plate":
+                f.write("Well plate" + "\n")
+                f.write(self.PlateLabel.get() + "\n")
+                f.write(str(self.index) + "\n\n")
+
+                #initialize variables
+                data = []
+                iter = 0
+                dimension = 0
+
+                for frame in self.dict_compounds.values():
+                    classname = re.search("(\w+):",frame.winfo_children()[0].winfo_children()[1].cget("text"))
+                    print(classname.group(1))
+                    data.append(classname.group(1))
+                    iter += 1
+                    data.append([])
+                    for child in frame.winfo_children():
+                        for widget in child.winfo_children():
+                            if widget.winfo_class() == 'Entry':
+                                data[iter].append(widget.get())
+                    iter += 1
+                print(data)
+
+                #parse:
+                names_conc = ""
+                ranges = ""
+                for i in range(int(len(data)/2)):
+                    #each element of the form: label space (conc unit)
+                    names_conc += data[i*2+1][0] + " (" + str(data[i*2+1][1]) + str(self.units_paramfile.get(data[2*i])) + "),"
+                    #user friendly
+                    if data[i * 2 + 1][2] != data[i * 2 + 1][3]:
+                        dimension += 1
+                        if data[i*2+1][2] > data[i*2+1][3]:
+                            ranges += str(data[i * 2 + 1][2]) + "-" + str(data[i * 2 + 1][3]) + ","
+                            #TODO: add warning to let the user now they were switched
+
+                    ranges += str(data[i*2+1][2]) + "-" + str(data[i*2+1][3]) + ","
+                names_conc += "MQ"
+
+                #write to file:
+                f.write(str(dimension) + "\n")
+                f.write(names_conc + "\n")
+                f.write(str(self.TubeRack.get()) + "\n")
+                f.write(ranges[:-1] + "\n")
+                f.write(str(self.index) + "\n")
+                f.write(str(self.WorkingVolume.get()) + "\n")
+
+            elif self.PlateOptionMenu.get() == "Tube rack":
+                f.write("Tube rack" + "\n")
+                f.write(self.PlateLabel.get() + "\n")
+                f.write(str(self.index) + "\n")
+
         # removes frame
         self.destroy()
 
-    def addsalt(self):
+    def addsalt(self, include_range = False):
         irow = self.irow
-        frame_salt = customtkinter.CTkFrame(master=self.frame_compounds)
+        frame_salt = customtkinter.CTkFrame(master=self.frame_Compounds_input)
         frame_salt.grid(row=irow, column=0, columnspan=3)
 
         Label = customtkinter.CTkLabel(master=frame_salt, text="label salt: ", width=100)
@@ -82,31 +224,32 @@ class InputFrame(customtkinter.CTkFrame):
         CompoundLabel = customtkinter.CTkEntry(master=frame_salt)
         CompoundLabel.grid(row=0, column=1)
 
-        Stock = customtkinter.CTkLabel(master=frame_salt, text="conc (M): ", width=70)
+        Stock = customtkinter.CTkLabel(master=frame_salt, text="conc (" + self.units.get("salt") + "): ", width=70)
         Stock.grid(row=0, column=2, padx=5)
         Stock.grid_propagate(False)
 
         CompoundStock = customtkinter.CTkEntry(master=frame_salt)
         CompoundStock.grid(row=0, column=3)
 
-        Gradient = customtkinter.CTkCheckBox(master=frame_salt, text="range")
-        Gradient.grid(row=0, column=4)
+        if include_range == True:
+            Gradient = customtkinter.CTkLabel(master=frame_salt, text="range:", width = 65, anchor = "e")
+            Gradient.grid(row=0, column=4)
 
-        FromRange = customtkinter.CTkEntry(master=frame_salt, width=50)
-        FromRange.grid(row=0, column=5, padx=5)
+            FromRange = customtkinter.CTkEntry(master=frame_salt, width=50)
+            FromRange.grid(row=0, column=5, padx=5)
 
-        customtkinter.CTkLabel(master=frame_salt, text="-", width=1).grid(row=0, column=6, padx=5)
+            customtkinter.CTkLabel(master=frame_salt, text="-", width=1).grid(row=0, column=6, padx=5)
 
-        ToRange = customtkinter.CTkEntry(master=frame_salt, width=50)
-        ToRange.grid(row=0, column=7, padx=5)
+            ToRange = customtkinter.CTkEntry(master=frame_salt, width=50)
+            ToRange.grid(row=0, column=7, padx=5)
 
         # update row variable for compounds
-        self.irow = self.irow + 1
         self.dict_compounds[self.irow] = frame_salt
+        self.irow = self.irow + 1
 
-    def addprecipitate(self):
+    def addprecipitate(self, include_range = False):
         irow = self.irow
-        frame_precipitate = customtkinter.CTkFrame(master=self.frame_compounds)
+        frame_precipitate = customtkinter.CTkFrame(master=self.frame_Compounds_input)
         frame_precipitate.grid(row=irow, column=0, columnspan=3)
 
         Label = customtkinter.CTkLabel(master=frame_precipitate, text="label precipitate: ", width=100)
@@ -116,31 +259,31 @@ class InputFrame(customtkinter.CTkFrame):
         CompoundLabel = customtkinter.CTkEntry(master=frame_precipitate)
         CompoundLabel.grid(row=0, column=1)
 
-        Stock = customtkinter.CTkLabel(master=frame_precipitate, text="conc (m%): ", width=70)
+        Stock = customtkinter.CTkLabel(master=frame_precipitate, text="conc (" + self.units.get("precipitate") + "): ", width=70)
         Stock.grid(row=0, column=2, padx=5)
         Stock.grid_propagate(False)
 
         CompoundStock = customtkinter.CTkEntry(master=frame_precipitate)
         CompoundStock.grid(row=0, column=3)
+        if include_range == True:
+            Gradient = customtkinter.CTkLabel(master=frame_precipitate, text="range:", width = 65, anchor = "e")
+            Gradient.grid(row=0, column=4)
 
-        Gradient = customtkinter.CTkCheckBox(master=frame_precipitate, text="range")
-        Gradient.grid(row=0, column=4)
+            FromRange = customtkinter.CTkEntry(master=frame_precipitate, width=50)
+            FromRange.grid(row=0, column=5, padx=5)
 
-        FromRange = customtkinter.CTkEntry(master=frame_precipitate, width=50)
-        FromRange.grid(row=0, column=5, padx=5)
+            customtkinter.CTkLabel(master=frame_precipitate, text="-", width=1).grid(row=0, column=6, padx=5)
 
-        customtkinter.CTkLabel(master=frame_precipitate, text="-", width=1).grid(row=0, column=6, padx=5)
-
-        ToRange = customtkinter.CTkEntry(master=frame_precipitate, width=50)
-        ToRange.grid(row=0, column=7, padx=5)
+            ToRange = customtkinter.CTkEntry(master=frame_precipitate, width=50)
+            ToRange.grid(row=0, column=7, padx=5)
 
         # update row variable for compounds
-        self.irow = self.irow + 1
         self.dict_compounds[self.irow] = frame_precipitate
+        self.irow = self.irow + 1
 
-    def addbuffer(self):
+    def addbuffer(self, include_range = False):
         irow = self.irow
-        frame_buffer = customtkinter.CTkFrame(master=self.frame_compounds)
+        frame_buffer = customtkinter.CTkFrame(master=self.frame_Compounds_input)
         frame_buffer.grid(row=irow, column=0, columnspan=3)
 
         Label = customtkinter.CTkLabel(master=frame_buffer, text="label buffer: ", width=100)
@@ -150,28 +293,28 @@ class InputFrame(customtkinter.CTkFrame):
         CompoundLabel = customtkinter.CTkEntry(master=frame_buffer)
         CompoundLabel.grid(row=0, column=1)
 
-        Stock = customtkinter.CTkLabel(master=frame_buffer, text="conc (pH): ", width=70)
+        Stock = customtkinter.CTkLabel(master=frame_buffer, text="conc (" + self.units.get("salt") + "): ", width=70)
         Stock.grid(row=0, column=2, padx=5)
         Stock.grid_propagate(False)
 
         CompoundStock = customtkinter.CTkEntry(master=frame_buffer)
         CompoundStock.grid(row=0, column=3)
 
-        Gradient = customtkinter.CTkCheckBox(master=frame_buffer, text="range")
-        Gradient.grid(row=0, column=4)
+        if include_range == True:
+            Gradient = customtkinter.CTkLabel(master=frame_buffer, text="range:", width = 65, anchor = "e")
+            Gradient.grid(row=0, column=4)
 
-        FromRange = customtkinter.CTkEntry(master=frame_buffer, width=50)
-        FromRange.grid(row=0, column=5, padx=5)
+            FromRange = customtkinter.CTkEntry(master=frame_buffer, width=50)
+            FromRange.grid(row=0, column=5, padx=5)
 
-        customtkinter.CTkLabel(master=frame_buffer, text="-", width=1).grid(row=0, column=6, padx=5)
+            customtkinter.CTkLabel(master=frame_buffer, text="-", width=1).grid(row=0, column=6, padx=5)
 
-        ToRange = customtkinter.CTkEntry(master=frame_buffer, width=50)
-        ToRange.grid(row=0, column=7, padx=5)
+            ToRange = customtkinter.CTkEntry(master=frame_buffer, width=50)
+            ToRange.grid(row=0, column=7, padx=5)
 
         # update row variable for compounds
-        self.irow = self.irow + 1
         self.dict_compounds[self.irow] = frame_buffer
-
+        self.irow = self.irow + 1
 
 class ControlFrame(customtkinter.CTkFrame):
 
@@ -180,6 +323,7 @@ class ControlFrame(customtkinter.CTkFrame):
         for l in Lst:
             l.destroy()
         self.AddPipetButton.grid()
+        self.hasTwoPipets = False
 
     def addPipet(self):
         self.AddPipet2 = customtkinter.CTkEntry(master=self.frame_left_pipet)
@@ -194,10 +338,12 @@ class ControlFrame(customtkinter.CTkFrame):
         self.RemovePipetButton.grid(row=2, column=4)
 
         self.AddPipetButton.grid_remove()
+        self.hasTwoPipets = True
 
     def __init__(self, parent):
         super().__init__(parent)
-
+        self.parent = parent
+        self.hasTwoPipets = False
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
 
@@ -320,9 +466,8 @@ class ControlFrame(customtkinter.CTkFrame):
                                image=self.image_button11,
                                command=lambda *args: button_event(self, 11),
                                borderwidth=0)
-        self.button12 = Button(master=self.frame_top,
+        self.button12 = Label(master=self.frame_top,
                                image=self.image_buttontrash,
-                               command=lambda *args: button_event(self, 12),
                                borderwidth=0)
 
         self.button1.grid(row=3, column=0, pady=2, padx=2, sticky="nsew")
@@ -363,7 +508,51 @@ class ControlFrame(customtkinter.CTkFrame):
         customtkinter.set_appearance_mode(new_appearance_mode)
 
     def generate_protocol(self):
-        pass
+        #read all information in
+
+        directory = os.path.join(self.parent.inputsPath)
+        tips = ""
+        tuberacks = ""
+        instruments = ""
+        plates = ""
+        screens = ""
+        for filename in os.listdir(directory):
+            f = os.path.join(directory, filename)
+            # checking if it is a file
+
+            if os.path.isfile(f):
+                with open(f, "r") as f:
+                    type = f.readline().replace("\n", "")
+                    if type == "Tube rack":
+                        tuberacks += f.read()
+                    elif type == "Tip rack":
+                        tips += f.read()
+                    elif type == "Well plate":
+                        segments = f.read().split("\n\n")
+                        plates += segments[0] + "\n"
+                        screens += segments[1]
+
+        instruments += self.AddPipet.get() + "\n" + self.optionmenu_pip.get() + "\n"
+        if self.hasTwoPipets == True:
+            instruments += self.AddPipet2.get() + "\n" + self.optionmenu_pip2.get() + "\n"
+
+        #write to parameter file (maybe in name the date&time to ensure unique? .param.txt file
+        #alternative open new frame where you can enter the filename + add a default! Also: projectname? Username?
+
+        #The name of the parameterfile will be: projectname (gotten from first window) .param.txt
+        paramFilename = os.path.basename(self.parent.UserPath) + ".param.txt"
+        print(paramFilename)
+        paramFilePath = os.path.join(self.parent.UserPath,paramFilename)
+        print("path", paramFilePath)
+        with open(paramFilePath, "w+") as f:
+            f.write(tips + "\n")
+            #don't understand why not +"\n" after tuberacks, but it works TODO: figure out
+            f.write(tuberacks)
+            f.write(instruments + "\n")
+            f.write(plates + "\n")
+            f.write(screens + "\n")
+
+        #TODO: how to connect to compound library:
 
     def simulate_protocol(self):
         pass
@@ -382,6 +571,13 @@ class App(customtkinter.CTk):
         self.rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=1)
 
+        self.UserPath = fd.askdirectory()
+
+        #create the necessary folders:
+        parent_dir = os.path.join(self.UserPath, "inputs")
+        if not os.path.isdir(parent_dir):
+            os.mkdir(parent_dir)
+        self.inputsPath = parent_dir
 
 if __name__ == "__main__":
     app = App()
