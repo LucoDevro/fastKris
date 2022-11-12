@@ -2,8 +2,8 @@ metadata = {
     'apiLevel': '2.9',
     'protocolName': 'Crystallization screen',
     'description': '''This protocol has been automatically generated using fastKris.
-                      Manual modifications will be overwritten when rerunning fastKris.''',
-    'author': 'LBMD'
+                      Manual modifications will be overwritten.''',
+    'author': 'fastKris 1.0'
 }
 
 import warnings
@@ -50,7 +50,7 @@ def run(protocol: protocol_api.ProtocolContext):
                 
                 # skip negative volumes with a warning
                 if vol < 0:
-                    warnings.warn('Negative diluent volume detected! Please check your concentration ranges! Skipping for now...')
+                    warnings.warn('Negative diluent volume: Skipping for now...')
                     continue
                 
                 # picking the most appropiate pipette according to the volume to be pipetted
@@ -58,18 +58,27 @@ def run(protocol: protocol_api.ProtocolContext):
                     if vol >= small_pipette.min_volume:
                         instrument = small_pipette
                     else:
-                        raise Exception('No suitable pipette attached!')
+                        raise Exception("No suitable pipette attached for all volumes to be pipetted! Smallest pipette: " \
+                                        + str(small_pipette.min_volume) + ' - ' + str(small_pipette.max_volume) + \
+                                        " Biggest pipette: " + str(big_pipette.min_volume) + ' - ' + str(big_pipette.max_volume) \
+                                        + " This volume: " + str(vol))
                 elif vol <= big_pipette.max_volume:
                     if vol >= big_pipette.min_volume:
                         instrument = big_pipette
                     else:
-                        raise Exception('No suitable pipette attached!')
+                        raise Exception("No suitable pipette attached for all volumes to be pipetted! Smallest pipette: " \
+                                        + str(small_pipette.min_volume) + ' - ' + str(small_pipette.max_volume) + \
+                                        " Biggest pipette: " + str(big_pipette.min_volume) + ' - ' + str(big_pipette.max_volume) \
+                                        + " This volume: " + str(vol))
                 else:
-                    raise Exception('No suitable pipette attached!')
+                    raise Exception("No suitable pipette attached for all volumes to be pipetted! Smallest pipette: " \
+                                    + str(small_pipette.min_volume) + ' - ' + str(small_pipette.max_volume) + \
+                                    " Biggest pipette: " + str(big_pipette.min_volume) + ' - ' + str(big_pipette.max_volume) \
+                                    + " This volume: " + str(vol))
                 
                 # adapt the instrument aspiration z position depending on the available stock volume. 
-                # ASSUMPTION: stock tubes initially are full. We'll take a large margin of 2 cm to anticipate it's not.
-                instrument.well_bottom_clearance.aspirate = max(stock_vol / stock.max_volume * stock.depth - 20, 1)
+                # ASSUMPTION: stock tubes initially are full. We'll take a large margin of 2.5 cm to anticipate it's not.
+                instrument.well_bottom_clearance.aspirate = max(stock_vol / stock.max_volume * stock.depth - 25, 1)
                 
                 # Make sure a tip is attached
                 if not(instrument.has_tip):
@@ -78,7 +87,7 @@ def run(protocol: protocol_api.ProtocolContext):
                 # get the well to prepare
                 well = screen.plate.wells()[well_order[i]]
                 
-                # Transfer the volume and blow out, but keep the tip out of the liquid
+                # Transfer the volume and blow out, but keep the tip out of the liquid to reuse it for the other wells
                 # Only when adding the last compound, put the tip in the liquid, mix and drop the tip
                 if last:
                     instrument.well_bottom_clearance.aspirate = 1
@@ -126,6 +135,9 @@ def setup(protocol):
     # parsing pipetting instruments
     instrumentInput = instr_raw[0::2]
     instrumentLocation = instr_raw[1::2]
+    unknwLoc = [loc not in ['left', 'right'] for loc in instrumentLocation]
+    if np.any(unknwLoc):
+        raise Exception('Unknown pipet position: "' + str(instrumentLocation[unknwLoc.index(True)]) + '"')
 
     # loading pipetting instruments and their associated tip racks
     tips_by_instr = {}
@@ -159,7 +171,10 @@ def setup(protocol):
         
         # parse plate number and link the plate object to it
         screen_plate = int(all_screen_plates[s])
-        screen_plate = protocol.loaded_labwares[screen_plate]
+        try:
+            screen_plate = protocol.loaded_labwares[screen_plate]
+        except KeyError:
+            raise Exception('Cannot load well plate. There is nothing assigned to slot ' + str(screen_plate) + '!')
         
         # well working volume
         screen_workVol = int(all_screen_workVol[s])
@@ -169,14 +184,25 @@ def setup(protocol):
             raise Exception('Working volume exceeds the well volume!')
 
         # compounds used in this particular screen
-        screen_compounds = [compoundLibrary[i] for i in all_screen_compounds[s].split(',')]
+        screen_compounds_pre = all_screen_compounds[s].split(',')
+        if len(screen_compounds_pre) != 4:
+            raise Exception('A screen requires four compounds! Currently assigned: ' + str(len(screen_compounds_pre)))
+        unknwComp = [c not in compoundLibrary.keys() for c in screen_compounds_pre]
+        if np.any(unknwComp):
+            raise Exception('Unknown compound: "' + str(screen_compounds_pre[unknwComp.index(True)]) + '"')
+        screen_compounds = [compoundLibrary[i] for i in screen_compounds_pre]
         
         # stocks for each compound
         screen_stocks = []
         tubes_rackAndLocation = all_screen_stocks[s].split(',')
         for rl in tubes_rackAndLocation:
             rl_split = rl.split('/')
-            r = protocol.loaded_labwares[int(rl_split[0])]
+            try:
+                r = protocol.loaded_labwares[int(rl_split[0])]
+            except KeyError:
+                raise Exception('Cannot find stock tube. There is nothing assigned to slot ' + rl_split[0] + '!')
+            if "tuberack" not in r.name.lower():
+                raise Exception('Stocks have to be in a tuberack! There is no tuberack assigned to slot ' + rl_split[0])
             l = rl_split[1]
             screen_stocks.append(r[l])
 
@@ -187,7 +213,7 @@ def setup(protocol):
             raw_range = [float(i) for i in screen_range_raw[c].split('-')]
             srt_range = sorted(raw_range)
             if not(srt_range == raw_range):
-                warnings.warn('Ranges were not given from low to high. Rearranging the values for now...')
+                warnings.warn('Ranges are not given from low to high. Rearranging for now...')
             screen_range[screen_compounds[c]] = tuple(srt_range)
 
         # creating Screen objects from the parsed properties, depending on the screen type
@@ -196,7 +222,7 @@ def setup(protocol):
         elif screen_type == 2:
             screen = twoD(screen_range, screen_compounds, screen_plate, screen_workVol, screen_stocks)
         else:
-            raise Exception('Unknown screen type.')
+            raise Exception('Unknown screen type: "' + str(screen_type) + '"')
         screens.append(screen)
 
     return [tips, tuberacks, instruments, plates, screens]
@@ -205,7 +231,7 @@ def setup(protocol):
 def loadLibrary():
     compLibrary = {}
     if not(len(labels) == len(set(labels))):
-        raise Exception("Duplicate labels detected! Please check your labelling!")
+        raise Exception("Duplicate compound labels detected! Please check your labels!")
     for i in range(len(labels)):
         if types[i].lower() == "salt":
             compLibrary[labels[i]] = Salt(float(stockConc[i]), labels[i])
@@ -216,7 +242,7 @@ def loadLibrary():
         elif types[i].lower() == "diluent":
             compLibrary[labels[i]] = Diluent(labels[i])
         else:
-            raise Exception("Compound type not understood!")
+            raise Exception("Compound type not understood: " + labels[i])
 
     return compLibrary
 
@@ -306,7 +332,7 @@ class twoD(Screen):
             totVol += np.array(out)
         diluent_vol = np.round(self.workVol - totVol, 3)
         if np.any(diluent_vol < 0):
-            raise Exception('Negative diluent volume detected! Please check your concentration ranges!')
+            warnings.warn('Negative diluent volume detected! Please check your concentration ranges!')
         dict[self.compounds[diluent_index]] = diluent_vol.flatten().tolist()
         return dict
 
@@ -322,7 +348,7 @@ class Compound:
 class Salt(Compound):
 
     def __str__(self):
-        return self.label + ', Salt'
+        return self.label + ' (Salt)'
 
     def dilute(self, outputConc, wellVol):
         return outputConc * wellVol / self.stock
@@ -331,7 +357,7 @@ class Salt(Compound):
 class Precipitant(Compound):
 
     def __str__(self):
-        return self.label + ', Precipitant'
+        return self.label + ' (Precipitant)'
 
     def dilute(self, outputPerc, wellVol):
         return outputPerc * wellVol / self.stock
@@ -340,7 +366,7 @@ class Precipitant(Compound):
 class Buffer(Compound):
 
     def __str__(self):
-        return self.label + ', Buffer'
+        return self.label + ' (Buffer)'
 
     def dilute(self, outputConc, wellVol):
         return outputConc * wellVol / self.stock
@@ -352,5 +378,5 @@ class Diluent(Compound):
         self.label = label
         
     def __str__(self):
-        return self.label + ', Diluent'
+        return self.label + ' (Diluent)'
     
