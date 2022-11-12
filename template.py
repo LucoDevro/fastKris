@@ -45,12 +45,17 @@ def run(protocol: protocol_api.ProtocolContext):
             last = (compound == list(vols.keys())[-1])
 
             # fill the wells one by one
-            for i in range(len(well_order)):               
+            for i in range(len(well_order)):     
+                
+                # volume for this compound in this well
                 vol = vols[compound][i]
+                
+                # the well to prepare
+                well = screen.plate.wells()[well_order[i]]
                 
                 # skip negative volumes with a warning
                 if vol < 0:
-                    warnings.warn('Negative diluent volume: Skipping for now...')
+                    warnings.warn('Negative diluent volume in ' + str(well) + ': Skipping for now...')
                     continue
                 
                 # picking the most appropiate pipette according to the volume to be pipetted
@@ -76,39 +81,35 @@ def run(protocol: protocol_api.ProtocolContext):
                                     " Biggest pipette: " + str(big_pipette.min_volume) + ' - ' + str(big_pipette.max_volume) \
                                     + " This volume: " + str(vol))
                 
-                # adapt the instrument aspiration z position depending on the available stock volume. 
-                # ASSUMPTION: stock tubes initially are full. We'll take a large margin of 2.5 cm to anticipate it's not.
-                instrument.well_bottom_clearance.aspirate = max(stock_vol / stock.max_volume * stock.depth - 25, 1)
-                
                 # Make sure a tip is attached
                 if not(instrument.has_tip):
                     instrument.pick_up_tip()
-                    
-                # get the well to prepare
-                well = screen.plate.wells()[well_order[i]]
                 
-                # Transfer the volume and blow out, but keep the tip out of the liquid to reuse it for the other wells
                 # Only when adding the last compound, put the tip in the liquid, mix and drop the tip
                 if last:
-                    instrument.well_bottom_clearance.aspirate = 1
-                    instrument.well_bottom_clearance.dispense = 1
                     instrument.transfer(vol, stock, well, new_tip = "never")
                     instrument.mix(repetitions = 3, volume = small_pipette.max_volume)
                     instrument.drop_tip()
                 else:
+                    # Transfer the volume and blow out, but avoid putting the tip into the liquid to reuse it for the other wells
+                    # Adapt the instrument's aspiration well bottom clearance depending on the available stock volume. 
+                    # ASSUMPTION: stock tubes initially are full. We'll take a large margin of 2.5 cm to anticipate it's not.
+                    instrument.well_bottom_clearance.aspirate = max(stock_vol / stock.max_volume * stock.depth - 25, 1)
                     instrument.well_bottom_clearance.dispense = well.depth
                     instrument.transfer(vol, stock, well, new_tip = "never")
                     instrument.blow_out()
+                    # Revert the instrument's well bottom clearances to the default values
+                    instrument.well_bottom_clearance.aspirate = 1
+                    instrument.well_bottom_clearance.dispense = 1
                     
                 # substract the transferred volume from the stock volume
                 stock_vol -= vol
                 
                 # log to stdout
                 print("Transferred " + str(vol) + " uL of " + str(compound) + \
-                      " from " + str(stock) + " into " + str(screen.plate.wells()[well_order[i]]) + \
-                      " using " + str(instrument))
+                      " from " + str(stock) + " into " + str(well) + " using " + str(instrument))
                 
-            # drop any tips when ready with a compound
+            # drop any remaining tips when ready with a compound
             if small_pipette.has_tip:
                 small_pipette.drop_tip()
             if big_pipette.has_tip:
