@@ -9,18 +9,28 @@ metadata = {
 import warnings
 import numpy as np
 
+### The main run executed by the OpenTrons
 def run(protocol: protocol_api.ProtocolContext):
+    
+    # Load compound library
     global compoundLibrary
     compoundLibrary = loadLibrary()
     print('Compound library loaded...')
+    
+    # Parse parameter file and setup experiments
     [tips, tuberacks, instruments, plates, screens] = setup(protocol)
+    
+    # Identify the instruments by capacity
     pipette_capacities = [inst.max_volume for inst in instruments]
     small_pipette = instruments[pipette_capacities.index(min(pipette_capacities))]
     big_pipette = instruments[pipette_capacities.index(max(pipette_capacities))]
     print('Screens parsed...')
 
+    # Every screening experiment has its own object
     for screen in screens:
         print("Executing Screen " + str(screens.index(screen)+1))
+        
+        # Get dictionary by compound of lists of well volumes in the row-by-row preparation order
         vols = screen.getAllVol()
         
         # Calculating total liquid requirements
@@ -88,7 +98,7 @@ def run(protocol: protocol_api.ProtocolContext):
                 # Only when adding the last compound, put the tip in the liquid, mix and drop the tip
                 if last:
                     instrument.transfer(vol, stock, well, new_tip = "never")
-                    instrument.mix(repetitions = 3, volume = small_pipette.max_volume)
+                    instrument.mix(repetitions = 3, volume = instrument.max_volume / 2)
                     instrument.drop_tip()
                 else:
                     # Transfer the volume and blow out, but avoid putting the tip into the liquid to reuse it for the other wells
@@ -117,6 +127,7 @@ def run(protocol: protocol_api.ProtocolContext):
                 
     print("DONE!\n\n\n")
 
+### Parses the parameter files, loads all required instruments and labware, and sets up the screening experiments
 def setup(protocol):
     # parsing pipet tips
     tipsInput = tips_raw[0::3]
@@ -167,7 +178,7 @@ def setup(protocol):
 
         # screen type (1D, 2D or 3D)
         screen_type = int(all_screen_types[s])
-        if not(screen_type in set([1,2])):
+        if screen_type not in [1,2,3]:
             raise Exception('Unknown screen type!')
         
         # parse plate number and link the plate object to it
@@ -192,6 +203,9 @@ def setup(protocol):
         if np.any(unknwComp):
             raise Exception('Unknown compound: "' + str(screen_compounds_pre[unknwComp.index(True)]) + '"')
         screen_compounds = [compoundLibrary[i] for i in screen_compounds_pre]
+        oneDiluent = (sum([isinstance(c, Diluent) for c in screen_compounds]) == 1)
+        if not oneDiluent:
+            raise Exception('There should be one and only one Diluent assigned!')
         
         # stocks for each compound
         screen_stocks = []
@@ -222,13 +236,15 @@ def setup(protocol):
             screen = oneD(screen_range, screen_compounds, screen_plate, screen_workVol, screen_stocks)
         elif screen_type == 2:
             screen = twoD(screen_range, screen_compounds, screen_plate, screen_workVol, screen_stocks)
+        elif screen_type == 3:
+            screen = threeD(screen_range, screen_compounds, screen_plate, screen_workVol, screen_stocks)
         else:
             raise Exception('Unknown screen type: "' + str(screen_type) + '"')
         screens.append(screen)
 
     return [tips, tuberacks, instruments, plates, screens]
 
-
+### Parses and loads the compound library
 def loadLibrary():
     compLibrary = {}
     if not(len(labels) == len(set(labels))):
@@ -255,11 +271,11 @@ def loadLibrary():
 class Screen:
 
     def __init__(self, range, compounds, plate, workVol, stocks):
-        self.range = range  # dictionary by compound that needs a range reported
-        self.compounds = compounds  # a list
-        self.workVol = workVol
-        self.plate = plate
-        self.stocks = stocks
+        self.range = range  # dictionary by Compound objects that need a concentration range reported
+        self.compounds = compounds  # a list of Compound objects
+        self.workVol = workVol # well working volume (int)
+        self.plate = plate # Wellplate object
+        self.stocks = stocks # Tuberack Well object
 
     def calcConcentration(self, compound, outConc):
         outVol = []
@@ -275,25 +291,39 @@ class oneD(Screen):
             self.workVol) + ' uL)'
 
     def getOutConc(self, compound):
-        # get np array
+        
+        # Get range of concentrations for compound 1
         return np.linspace(start=self.range[compound][0], stop=self.range[compound][1],
                            num=len(self.plate.wells())).tolist()
 
     def getAllVol(self):
         dict = {}
+        
+        # Initialise volume counter
         totVol = np.zeros(len(self.plate.rows()[0]) * len(self.plate.columns()[0]))
+        
+        # For every compound, calculate the volume to be pipetted
         for compound in self.compounds:
+            
+            # Diluent volumes are calculated afterwards, but memorise its index
             if isinstance(compound, Diluent):
                 diluent_index = self.compounds.index(compound)
                 continue
+            
+            # Volume calculations
             outConc = self.getOutConc(compound)
             out = self.calcConcentration(compound, outConc)
             dict[compound] = out
+            
+            # count the volumes of non-Diluent compounds
             totVol += np.array(out)
+        
+        # Calculate diluent volumes
         diluent_vol = np.round(self.workVol - totVol, 3)
         if np.any(diluent_vol < 0):
             warnings.warn('Negative diluent volume detected! Please check your concentration ranges!')
-        dict[self.compounds[diluent_index]] = diluent_vol.flatten().tolist()
+        dict[self.compounds[diluent_index]] = diluent_vol.tolist()
+        
         return dict
 
 
@@ -304,24 +334,38 @@ class twoD(Screen):
             self.workVol) + ' uL)'
 
     def getOutConc(self, compound, dimension):
+        
+        # prepared horizontally (Compound 1)
         if dimension == 'h':
             return np.linspace(start=self.range[compound][0], stop=self.range[compound][1],
                                num=len(self.plate.rows()[0])).tolist()
+        
+        # prepared vertically (Compound 2)
         elif dimension == 'v':
             return np.linspace(start=self.range[compound][0], stop=self.range[compound][1],
                                num=len(self.plate.columns()[0])).tolist()
+        
+        # prepared along all wells (Compound 3)
         elif dimension == 'a':
             return np.linspace(start=self.range[compound][0], stop=self.range[compound][1],
                                num=len(self.plate.wells())).tolist()
 
     def getAllVol(self):
         dict = {}
+        
+        # Initialise volume counter and order of preparation by compound
         totVol = np.zeros(len(self.plate.rows()[0]) * len(self.plate.columns()[0]))
         dimensions = ['h', 'v', 'a']
+        
+        # For every compound, calculate the volume to be pipetted
         for compound in self.compounds:
+            
+            # Diluent volumes are calculated afterwards, but memorise its index
             if isinstance(compound, Diluent):
                 diluent_index = self.compounds.index(compound)
                 continue
+            
+            # Volume calculations and array manipulation according to well prepartion order
             dimension = dimensions[self.compounds.index(compound)]
             outConc = self.getOutConc(compound, dimension)
             out = self.calcConcentration(compound, outConc)
@@ -330,12 +374,100 @@ class twoD(Screen):
             elif dimension == 'v':
                 out = np.tile(np.array(out), (len(self.plate.rows()[0]), 1)).transpose().flatten().tolist()
             dict[compound] = out
+            
+            # Count the volumes of non-Diluent compounds
             totVol += np.array(out)
+            
+        # Calculate diluent volumes
         diluent_vol = np.round(self.workVol - totVol, 3)
         if np.any(diluent_vol < 0):
             warnings.warn('Negative diluent volume detected! Please check your concentration ranges!')
-        dict[self.compounds[diluent_index]] = diluent_vol.flatten().tolist()
+        dict[self.compounds[diluent_index]] = diluent_vol.tolist()
+        
         return dict
+ 
+    
+# This 3D screen class only supports four compartments to vary Compound 3
+class threeD(Screen):
+
+    def __str__(self):
+        return '3D screen, ' + str(self.range) + str(self.compounds) + ' on plate ' + str(self.plate) + ' (' + str(
+            self.workVol) + ' uL)'
+
+    def getOutConc(self, compound, dimension, compartment):
+        
+        # prepared horizontally (Compound 1)
+        # Account for the size of the compartment
+        if dimension == 'h':
+            return np.linspace(start=self.range[compound][0], stop=self.range[compound][1],
+                               num=int(len(self.plate.rows()[0]) / 2)).tolist()
+            
+        # prepared vertically (Compound 2)
+        # Account for the size of the compartment
+        elif dimension == 'v':
+            return np.linspace(start=self.range[compound][0], stop=self.range[compound][1],
+                               num=int(len(self.plate.columns()[0]) / 2)).tolist()
+        
+        # prepared along all wells (Compound 3)
+        # Account for the size of the compartment
+        elif dimension == 'a':
+            third_dim = np.linspace(start=self.range[compound][0], stop=self.range[compound][1], num = 4).tolist()[compartment]
+            return np.linspace(start=third_dim, stop=third_dim, num=int(len(self.plate.wells()) / 4))
+
+    def getAllVol(self):
+        
+        # Initialise order of preparation by compound and list of calculations by compartment
+        dimensions = ['h', 'v', 'a']
+        compartment_calcs = []
+        
+        # For every compartment, carry out a 2D screen with a fixed concentration for compound 3
+        for compartment in range(4):
+            
+            # Initialise volume counter
+            dict_comp={}
+            totVol = np.zeros((int(len(self.plate.columns()[0]) / 2), int(len(self.plate.rows()[0]) / 2)))
+            
+            # For every compound, calculate the volume to be pipetted
+            for compound in self.compounds:
+                
+                # Diluent volumes are calculated afterwards, but memorise its index
+                if isinstance(compound, Diluent):
+                    diluent_index = self.compounds.index(compound)
+                    continue
+                
+                # Volume calculations and array manipulation according to well prepartion order
+                dimension = dimensions[self.compounds.index(compound)]
+                outConc = self.getOutConc(compound, dimension, compartment)
+                out = np.array(self.calcConcentration(compound, outConc))
+                if dimension == 'h':
+                    out = np.tile(out, (int(len(self.plate.columns()[0]) / 2), 1))
+                elif dimension == 'v':
+                    out = np.tile(out, (int(len(self.plate.rows()[0]) / 2), 1)).transpose()
+                elif dimension == 'a':
+                    out = out.reshape((int(len(self.plate.columns()[0]) / 2), int(len(self.plate.rows()[0]) / 2)))
+                dict_comp[compound] = out
+                
+                # Count the volumes of non-Diluent compounds
+                totVol += out
+                
+            # Calculate diluent volumes
+            diluent_vol = np.round(self.workVol - totVol, 3)
+            if np.any(diluent_vol < 0):
+                warnings.warn('Negative diluent volume detected! Please check your concentration ranges!')
+            dict_comp[self.compounds[diluent_index]] = diluent_vol
+            
+            # Collect the results for this compartment
+            compartment_calcs.append(dict_comp)
+            
+        # Build the full list of pipetting volumes for the entire plate from the separate compartments
+        dict ={}
+        for compound in self.compounds:
+            full = np.block([[compartment_calcs[0][compound], compartment_calcs[1][compound]],
+                             [compartment_calcs[2][compound], compartment_calcs[3][compound]]])
+            dict[compound] = full.flatten().tolist()
+            
+        return dict
+
 
 # Compound class
 
