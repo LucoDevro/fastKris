@@ -1,10 +1,10 @@
-import tkinter
 from tkinter import *
 import customtkinter
 from tkinter.font import BOLD
 from tkinter import filedialog as fd
 import os
 import re
+import webbrowser
 
 customtkinter.set_appearance_mode("Dark")  # Modes: "Dark", "Light"
 customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
@@ -18,19 +18,23 @@ class InputFrame(customtkinter.CTkFrame):
         self.index = index
         self.parent = parent
         self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(1,weight = 1)
         self.grid_columnconfigure(0, weight=1)
 
-        self.frame_up = customtkinter.CTkFrame(master=self)
-        self.frame_up.columnconfigure((0, 1, 2, 3, 4, 5), weight=1)
+        self.frame_up = customtkinter.CTkFrame(master=self, width = 680)
+        #self.frame_up.columnconfigure((0, 1, 2, 3, 4, 5), weight=1)
         self.frame_up.columnconfigure((0, 1), weight=1)
         self.frame_up.grid(row=0, column=0, sticky="nsew")
+        #here changed for well_plate
+        self.frame_up.grid_propagate(False)
 
         self.frame_compounds = customtkinter.CTkFrame(master=self.frame_up, width=680)
-        self.frame_compounds.grid(row=3, column=0, columnspan=2, sticky="ns")
-        self.frame_compounds.grid_propagate(False)
+        self.frame_compounds.grid(row=2, column=0, columnspan=2, sticky="ns")
+        ##here changed for well_plate size frame_right
+        #self.frame_compounds.grid_propagate(False)
 
         self.frame_down = customtkinter.CTkFrame(master=self)
-        self.frame_down.columnconfigure(0, weight=1, uniform="")
+        self.frame_down.columnconfigure(0, weight=1)#, uniform="")
         self.frame_down.grid(row=2, column=0, sticky="nsew")
 
         customtkinter.CTkLabel(master=self.frame_up, text="name plate: ").grid(row=0, column=0, sticky="W")
@@ -46,14 +50,12 @@ class InputFrame(customtkinter.CTkFrame):
         self.PlateOptionMenu.grid(row=1, column=1, sticky="nsew")
 
         # set fixed for now, font family can be obtained dynamically (not implemented yet)
-        #put in a separate frame to adapt when necessary
-
-        self.frame_Compounds_input = customtkinter.CTkFrame(master = self.frame_compounds, width = 700)
+        self.frame_Compounds_input = customtkinter.CTkFrame(master = self.frame_compounds, width = 680)
         self.frame_Compounds_input.grid()
         self.frame_Compounds_input.propagate(False)
 
         self.frame_compounds.rowconfigure(2, minsize=5)  # empty row with minsize as spacing)
-        self.irow = 7
+        self.irow = 8
         self.dict_compounds = {}
 
         self.buttonApply = customtkinter.CTkButton(master=self.frame_down, text="Apply", command=self.button_event)
@@ -64,23 +66,24 @@ class InputFrame(customtkinter.CTkFrame):
     def CompoundsFrameEvent(self, choice):
         if choice == "Tip rack":
             self.frame_Compounds_input.destroy()
+            self.frame_Compounds_input = customtkinter.CTkFrame(master=self.frame_compounds, width=680)
+            self.frame_Compounds_input.grid()
+            self.frame_Compounds_input.grid_rowconfigure(0, minsize = 3)
 
-            self.frame_Compounds_input = customtkinter.CTkFrame(master=self.frame_compounds, width=700)
-            self.frame_Compounds_input.grid(sticky="nw")
-            self.frame_Compounds_input.propagate(False)
+            #TODO: make ot align to the left of frame_compounds
 
             self.AssignedPipetLabel = customtkinter.CTkLabel(master=self.frame_Compounds_input,
-                                                             text="Assigned to pipet:",
-                                                             text_font=('Segoe UI', 10, BOLD))
+                                                             text="Assigned to pipet:", anchor = "w")
             self.AssignedPipetLabel.grid(row=2, column=0, sticky="nw")
-
+            
             self.AssignedPipetOption = customtkinter.CTkOptionMenu(master=self.frame_Compounds_input,
-                                                                   values=["Left", "Right"])
-            self.AssignedPipetOption.grid(row=2, column=1, sticky="nw")
+                                                                   values=["left", "right"])
+            self.AssignedPipetOption.grid(row=2, column=1, sticky="nsew")
 
         elif choice == "Tube rack":
             self.frame_Compounds_input.destroy()
-            self.frame_Compounds_input = customtkinter.CTkFrame(master=self.frame_compounds, width=700)
+            """
+            self.frame_Compounds_input = customtkinter.CTkFrame(master=self.frame_compounds, width=680)
             self.frame_Compounds_input.grid(sticky = "nw")
             self.frame_Compounds_input.propagate(False)
 
@@ -103,10 +106,10 @@ class InputFrame(customtkinter.CTkFrame):
                                                           command=self.addprecipitate, width=215)
             self.AddPrecipitate.grid(row=3, column=2, padx=5, sticky="nw")
             self.AddPrecipitate.grid_propagate(False)
-
+            """
         elif choice == "Well plate":
             self.frame_Compounds_input.destroy()
-            self.frame_Compounds_input = customtkinter.CTkFrame(master=self.frame_compounds, width=700)
+            self.frame_Compounds_input = customtkinter.CTkFrame(master=self.frame_compounds, width=680)
             self.frame_Compounds_input.grid()
             self.frame_Compounds_input.propagate(False)
 
@@ -128,23 +131,37 @@ class InputFrame(customtkinter.CTkFrame):
             self.TubeRackLabel.grid(row=4, column=0)
             self.TubeRack.grid(row=4, column=1)
 
-            self.frame_Compounds_input.grid_rowconfigure(5, minsize=5)  # empty row with minsize as spacing
+            self.MQpositionLabel = customtkinter.CTkLabel(master = self.frame_Compounds_input, text = "Milli-Q position: ")
+            self.MQpositionLabel.grid(row = 5, column = 0)
+            #B2
+            #self.MQposition = customtkinter.CTkEntry(master = self.frame_Compounds_input, text = "Milli-Q position: ")
+            self.MQposition = customtkinter.CTkEntry(master=self.frame_Compounds_input)
+            self.MQposition.grid(row = 5, column = 1)
+
+            self.HelpPositions = customtkinter.CTkButton(master= self.frame_Compounds_input, text = "?", corner_radius=5,
+                                                         width = 0.1, height = 0.1, fg_color= "gray33", command = self.openHelpPositions)
+            self.HelpPositions.grid(row = 5, column = 2, sticky = "w", padx = 5)
+
+            self.frame_Compounds_input.grid_rowconfigure(6, minsize=5)  # empty row with minsize as spacing
 
             self.AddSalt = customtkinter.CTkButton(master=self.frame_Compounds_input, text="Add salt",
                                                    command= lambda *args: self.addsalt(True),
                                                    width=215)
-            self.AddSalt.grid(row=6, column=0, padx=5, sticky="nw")
+            self.AddSalt.grid(row=7, column=0, padx=5, sticky="nw")
             self.AddSalt.grid_propagate(False)
             self.AddBuffer = customtkinter.CTkButton(master=self.frame_Compounds_input, text="Add buffer",
                                                      command= lambda *args: self.addbuffer(True),
                                                      width=215)
-            self.AddBuffer.grid(row=6, column=1, padx=5, sticky="nw")
+            self.AddBuffer.grid(row=7, column=1, padx=5, sticky="nw")
             self.AddBuffer.grid_propagate(False)
             self.AddPrecipitate = customtkinter.CTkButton(master=self.frame_Compounds_input, text="Add Precipitate",
                                                           command= lambda *args: self.addprecipitate(True),
                                                           width=215)
-            self.AddPrecipitate.grid(row=6, column=2, padx=5, sticky="nw")
+            self.AddPrecipitate.grid(row=7, column=2, padx=5, sticky="nw")
             self.AddPrecipitate.grid_propagate(False)
+
+    def openHelpPositions(self):
+        webbrowser.open_new(r"https://docs.opentrons.com/ot1/containers.html")
 
     def button_event(self):
         filename = "Input_plate" + str(self.index) + ".txt"
@@ -169,7 +186,6 @@ class InputFrame(customtkinter.CTkFrame):
 
                 for frame in self.dict_compounds.values():
                     classname = re.search("(\w+):",frame.winfo_children()[0].winfo_children()[1].cget("text"))
-                    print(classname.group(1))
                     data.append(classname.group(1))
                     iter += 1
                     data.append([])
@@ -178,11 +194,12 @@ class InputFrame(customtkinter.CTkFrame):
                             if widget.winfo_class() == 'Entry':
                                 data[iter].append(widget.get())
                     iter += 1
-                print(data)
 
                 #parse:
                 names_conc = ""
                 ranges = ""
+                positions = ""
+                tuberackpos = str(self.TubeRack.get())
                 for i in range(int(len(data)/2)):
                     #each element of the form: label space (conc unit)
                     names_conc += data[i*2+1][0] + " (" + str(data[i*2+1][1]) + str(self.units_paramfile.get(data[2*i])) + "),"
@@ -192,14 +209,15 @@ class InputFrame(customtkinter.CTkFrame):
                         if data[i*2+1][2] > data[i*2+1][3]:
                             ranges += str(data[i * 2 + 1][2]) + "-" + str(data[i * 2 + 1][3]) + ","
                             #TODO: add warning to let the user now they were switched
-
+                    positions += tuberackpos + "/" + data[i*2+1][4] + ","
                     ranges += str(data[i*2+1][2]) + "-" + str(data[i*2+1][3]) + ","
                 names_conc += "MQ"
+                positions += tuberackpos + "/" + self.MQposition.get()
 
                 #write to file:
                 f.write(str(dimension) + "\n")
                 f.write(names_conc + "\n")
-                f.write(str(self.TubeRack.get()) + "\n")
+                f.write(positions + "\n")
                 f.write(ranges[:-1] + "\n")
                 f.write(str(self.index) + "\n")
                 f.write(str(self.WorkingVolume.get()) + "\n")
@@ -209,6 +227,7 @@ class InputFrame(customtkinter.CTkFrame):
                 f.write(self.PlateLabel.get() + "\n")
                 f.write(str(self.index) + "\n")
 
+            f.write("\n")
         # removes frame
         self.destroy()
 
@@ -228,20 +247,26 @@ class InputFrame(customtkinter.CTkFrame):
         Stock.grid(row=0, column=2, padx=5)
         Stock.grid_propagate(False)
 
-        CompoundStock = customtkinter.CTkEntry(master=frame_salt)
+        CompoundStock = customtkinter.CTkEntry(master=frame_salt, width = 50)
         CompoundStock.grid(row=0, column=3)
 
         if include_range == True:
-            Gradient = customtkinter.CTkLabel(master=frame_salt, text="range:", width = 65, anchor = "e")
+            Gradient = customtkinter.CTkLabel(master=frame_salt, text="range:", width = 50, anchor = "e")
             Gradient.grid(row=0, column=4)
 
             FromRange = customtkinter.CTkEntry(master=frame_salt, width=50)
             FromRange.grid(row=0, column=5, padx=5)
 
-            customtkinter.CTkLabel(master=frame_salt, text="-", width=1).grid(row=0, column=6, padx=5)
+            customtkinter.CTkLabel(master=frame_salt, text="-", width=1).grid(row=0, column=6, padx=2)
 
             ToRange = customtkinter.CTkEntry(master=frame_salt, width=50)
             ToRange.grid(row=0, column=7, padx=5)
+
+        PositionLabel = customtkinter.CTkLabel(master=frame_salt, text="position: ", width=60)
+        PositionLabel.grid(row=0, column=8)
+
+        Position = customtkinter.CTkEntry(master=frame_salt, width=40)
+        Position.grid(row=0, column=9)
 
         # update row variable for compounds
         self.dict_compounds[self.irow] = frame_salt
@@ -250,7 +275,7 @@ class InputFrame(customtkinter.CTkFrame):
     def addprecipitate(self, include_range = False):
         irow = self.irow
         frame_precipitate = customtkinter.CTkFrame(master=self.frame_Compounds_input)
-        frame_precipitate.grid(row=irow, column=0, columnspan=3)
+        frame_precipitate.grid(row=irow, column=0, columnspan=5)
 
         Label = customtkinter.CTkLabel(master=frame_precipitate, text="label precipitate: ", width=100)
         Label.grid(row=0, column=0, padx=5)
@@ -263,19 +288,26 @@ class InputFrame(customtkinter.CTkFrame):
         Stock.grid(row=0, column=2, padx=5)
         Stock.grid_propagate(False)
 
-        CompoundStock = customtkinter.CTkEntry(master=frame_precipitate)
+        CompoundStock = customtkinter.CTkEntry(master=frame_precipitate, width = 50)
         CompoundStock.grid(row=0, column=3)
+
         if include_range == True:
-            Gradient = customtkinter.CTkLabel(master=frame_precipitate, text="range:", width = 65, anchor = "e")
+            Gradient = customtkinter.CTkLabel(master=frame_precipitate, text="range:", width = 50, anchor = "e")
             Gradient.grid(row=0, column=4)
 
             FromRange = customtkinter.CTkEntry(master=frame_precipitate, width=50)
             FromRange.grid(row=0, column=5, padx=5)
 
-            customtkinter.CTkLabel(master=frame_precipitate, text="-", width=1).grid(row=0, column=6, padx=5)
+            customtkinter.CTkLabel(master=frame_precipitate, text="-", width=1).grid(row=0, column=6, padx=2)
 
             ToRange = customtkinter.CTkEntry(master=frame_precipitate, width=50)
             ToRange.grid(row=0, column=7, padx=5)
+
+        PositionLabel = customtkinter.CTkLabel(master=frame_precipitate, text="position: ", width=60)
+        PositionLabel.grid(row=0, column=8)
+
+        Position = customtkinter.CTkEntry(master=frame_precipitate, width=40)
+        Position.grid(row=0, column=9)
 
         # update row variable for compounds
         self.dict_compounds[self.irow] = frame_precipitate
@@ -297,20 +329,27 @@ class InputFrame(customtkinter.CTkFrame):
         Stock.grid(row=0, column=2, padx=5)
         Stock.grid_propagate(False)
 
-        CompoundStock = customtkinter.CTkEntry(master=frame_buffer)
+        CompoundStock = customtkinter.CTkEntry(master=frame_buffer, width = 50)
         CompoundStock.grid(row=0, column=3)
 
         if include_range == True:
-            Gradient = customtkinter.CTkLabel(master=frame_buffer, text="range:", width = 65, anchor = "e")
+            Gradient = customtkinter.CTkLabel(master=frame_buffer, text="range:", width = 50, anchor = "e")
             Gradient.grid(row=0, column=4)
 
             FromRange = customtkinter.CTkEntry(master=frame_buffer, width=50)
             FromRange.grid(row=0, column=5, padx=5)
 
-            customtkinter.CTkLabel(master=frame_buffer, text="-", width=1).grid(row=0, column=6, padx=5)
+            customtkinter.CTkLabel(master=frame_buffer, text="-", width=1).grid(row=0, column=6, padx=2)
 
             ToRange = customtkinter.CTkEntry(master=frame_buffer, width=50)
             ToRange.grid(row=0, column=7, padx=5)
+
+        PositionLabel = customtkinter.CTkLabel(master=frame_buffer, text="position: ", width=60)
+        PositionLabel.grid(row=0, column=8)
+
+        Position = customtkinter.CTkEntry(master=frame_buffer, width=40)
+        ##TODO add color of original insert in grey to make distinction
+        Position.grid(row=0, column=9)
 
         # update row variable for compounds
         self.dict_compounds[self.irow] = frame_buffer
@@ -330,7 +369,7 @@ class ControlFrame(customtkinter.CTkFrame):
         self.AddPipet2.grid(row=2, column=1, sticky="nsew")
 
         self.optionmenu_pip2 = customtkinter.CTkOptionMenu(master=self.frame_left_pipet,
-                                                           values=["Left", "Right"], width=80)
+                                                           values=["left", "right"], width=80)
         self.optionmenu_pip2.grid(row=2, column=2, padx=10, sticky="nsew")
 
         self.RemovePipetButton = customtkinter.CTkButton(master=self.frame_left_pipet,
@@ -351,10 +390,9 @@ class ControlFrame(customtkinter.CTkFrame):
 
         self.selected_value = customtkinter.StringVar()
 
-        # setup for if two pipets available: force on Left then other Right (not implemented yet)
+        # setup for if two pipets available: force on left then other right (not implemented yet)
         self.selected_side_pipet = customtkinter.StringVar()
 
-        # previously = 180
         self.frame_left = customtkinter.CTkFrame(master=self, width=390)
         self.frame_left.grid_propagate(False)
 
@@ -378,7 +416,7 @@ class ControlFrame(customtkinter.CTkFrame):
         self.AddPipet.grid(row=0, column=1, sticky="nsew")
 
         self.optionmenu_pip = customtkinter.CTkOptionMenu(master=self.frame_left_pipet,
-                                                          values=["Left", "Right"], variable=self.selected_side_pipet,
+                                                          values=["left", "right"], variable=self.selected_side_pipet,
                                                           width=80)
         self.optionmenu_pip.grid(row=0, column=2, padx=10, sticky="nsew")
         self.optionmenu_pip.grid_propagate(False)
@@ -499,7 +537,6 @@ class ControlFrame(customtkinter.CTkFrame):
         def button_event(self, index):
             # index not used for now in the application, will be important later
             if isinstance(self.frame_right, InputFrame):
-                # read all information to a file, to remember input (not implemented yet)
                 self.frame_right.destroy()  # else if mulitple buttons pressed, all frames will stack
             self.frame_right = InputFrame(self, parent, index)
             self.frame_right.tkraise()
@@ -530,33 +567,33 @@ class ControlFrame(customtkinter.CTkFrame):
                     elif type == "Well plate":
                         segments = f.read().split("\n\n")
                         plates += segments[0] + "\n"
-                        screens += segments[1]
+                        screens += segments[1] + "\n"
+
 
         instruments += self.AddPipet.get() + "\n" + self.optionmenu_pip.get() + "\n"
         if self.hasTwoPipets == True:
             instruments += self.AddPipet2.get() + "\n" + self.optionmenu_pip2.get() + "\n"
 
-        #write to parameter file (maybe in name the date&time to ensure unique? .param.txt file
-        #alternative open new frame where you can enter the filename + add a default! Also: projectname? Username?
-
         #The name of the parameterfile will be: projectname (gotten from first window) .param.txt
         paramFilename = os.path.basename(self.parent.UserPath) + ".param.txt"
-        print(paramFilename)
         paramFilePath = os.path.join(self.parent.UserPath,paramFilename)
-        print("path", paramFilePath)
+        #print("path", paramFilePath)
         with open(paramFilePath, "w+") as f:
             f.write(tips + "\n")
             #don't understand why not +"\n" after tuberacks, but it works TODO: figure out
             f.write(tuberacks)
             f.write(instruments + "\n")
             f.write(plates + "\n")
-            f.write(screens + "\n")
+            f.write(screens)
 
         #TODO: how to connect to compound library:
+        #TODO: maybe it would make more sence if tube rack is where positions of compunds are defined
+
+        #generate the protocol
+        #writeTemplate(paramFilePath)
 
     def simulate_protocol(self):
         pass
-
 
 class App(customtkinter.CTk):
     WIDTH = 1080
