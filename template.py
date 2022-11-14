@@ -25,6 +25,8 @@ def run(protocol: protocol_api.ProtocolContext):
     small_pipette = instruments[pipette_capacities.index(min(pipette_capacities))]
     big_pipette = instruments[pipette_capacities.index(max(pipette_capacities))]
     print('Screens parsed...')
+    
+    protocol.set_rail_lights(True)
 
     # Every screening experiment has its own object
     for screen in screens:
@@ -97,16 +99,22 @@ def run(protocol: protocol_api.ProtocolContext):
                 
                 # Only when adding the last compound, put the tip in the liquid, mix and drop the tip
                 if last:
+                    instrument.well_bottom_clearance.aspirate = max(stock_vol / stock.max_volume * stock.depth - 35, 1)
+                    instrument.well_bottom_clearance.dispense = well.depth / 2
                     instrument.transfer(vol, stock, well, new_tip = "never")
                     instrument.mix(repetitions = 3, volume = instrument.max_volume / 2)
                     instrument.drop_tip()
+                    instrument.well_bottom_clearance.aspirate = 1
+                    instrument.well_bottom_clearance.dispense = 1
                 else:
                     # Transfer the volume and blow out, but avoid putting the tip into the liquid to reuse it for the other wells
                     # Adapt the instrument's aspiration well bottom clearance depending on the available stock volume. 
                     # ASSUMPTION: stock tubes initially are full. We'll take a large margin of 2.5 cm to anticipate it's not.
-                    instrument.well_bottom_clearance.aspirate = max(stock_vol / stock.max_volume * stock.depth - 25, 1)
+                    instrument.well_bottom_clearance.aspirate = max(stock_vol / stock.max_volume * stock.depth - 35, 1)
                     instrument.well_bottom_clearance.dispense = well.depth
                     instrument.transfer(vol, stock, well, new_tip = "never")
+                    instrument.blow_out()
+                    instrument.touch_tip(radius = 0.5)
                     instrument.blow_out()
                     # Revert the instrument's well bottom clearances to the default values
                     instrument.well_bottom_clearance.aspirate = 1
@@ -125,6 +133,7 @@ def run(protocol: protocol_api.ProtocolContext):
             if big_pipette.has_tip:
                 big_pipette.drop_tip()
                 
+    protocol.set_rail_lights(False)
     print("DONE!\n\n\n")
 
 ### Parses the parameter files, loads all required instruments and labware, and sets up the screening experiments
