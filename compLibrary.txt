@@ -4,7 +4,7 @@ Salt
 EDTA (10%)
 Precipitant
 10
-Acetate buffer (1 M)
+Acetate buffer (1M)
 Buffer
 1
 MQ
