@@ -5,6 +5,7 @@ from tkinter import filedialog as fd
 import os
 import re
 import webbrowser
+import json
 
 customtkinter.set_appearance_mode("Dark")  # Modes: "Dark", "Light"
 customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
@@ -50,8 +51,10 @@ class InputFrame(customtkinter.CTkFrame):
         if os.path.exists(completeFilename):
                 with open(completeFilename, "r") as f:
                     plateType = f.readline()
-                    if any(t in plateType for t in ["Tube rack", "Tip rack","Well plate"]):
-                        self.PlateLabel.insert(END, f.readline()[:-1])
+                    #clean up
+                    if any(t in plateType for t in ["Tip rack","Tube rack", "Well plate"]):
+                        self.PlateLabel.insert(END, json.loads(f.readline())['label'])
+
         self.PlateLabel.grid(row=0, column=1, sticky="nsew")
 
         customtkinter.CTkLabel(master=self.frame_up, text="add to plate:").grid(row=1, column=0, sticky="W")
@@ -117,7 +120,7 @@ class InputFrame(customtkinter.CTkFrame):
             if os.path.exists(completeFilename):
                 with open(completeFilename, "r") as f:
                     lines = f.readlines()
-                    self.AssignedPipetOption.set(lines[3].replace("\n", ""))
+                    self.AssignedPipetOption.set(json.loads(lines[1])['AssignedPipetOption'])
             ##END ADDED GUI4
 
         elif choice == "Tube rack":
@@ -190,17 +193,21 @@ class InputFrame(customtkinter.CTkFrame):
                                                    command=lambda *args: self.addsalt(True),
                                                    width=215)
             ##ADDED GUI4
+
             if os.path.exists(completeFilename):
                 with open(completeFilename, "r") as f:
-                    lines = f.readlines()
-                    self.WorkingVolume.insert(END,lines[9].replace("\n", ""))
-                    self.TubeRack.insert(END, lines[6].replace("\n", "")[0])
-                    compounds = lines[5].replace("\n", "").split(",")
-                    positions = lines[6].replace("\n","").split(",")
+                    dict = json.loads(f.readlines()[1])
+                    self.WorkingVolume.insert(END,dict["WorkingVolume"])
+                    self.TubeRack.insert(END, dict["Tuberack"])
+                    compounds = dict["names_conc"].split(",")
+                    positions = dict["positions"].split(",")
+                    #compounds is a list
                     for j in range(len(compounds)):
+                        print(compounds[j])
                         if 'MQ' == compounds[j]:
                             self.MQposition.insert(END,re.search(r"/(\w+)",positions[j]).group(1))
             ##END ADDED GUI4
+
 
             self.AddSalt.grid(row=7, column=0, padx=5, sticky="nw")
             self.AddSalt.grid_propagate(False)
@@ -218,6 +225,7 @@ class InputFrame(customtkinter.CTkFrame):
     def openHelpPositions(self):
         webbrowser.open_new(r"https://docs.opentrons.com/ot1/containers.html")
 
+    ##changed GUI4
     def button_event(self):
         filename = "Input_plate" + str(self.index) + ".txt"
         completeFilename = os.path.join(self.parent.inputsPath, filename)
@@ -225,14 +233,12 @@ class InputFrame(customtkinter.CTkFrame):
         with open(completeFilename, "w+") as f:
             if self.PlateOptionMenu.get() == "Tip rack":
                 f.write("Tip rack" + "\n")
-                f.write(self.PlateLabel.get() + "\n")
-                f.write(str(self.index) + "\n")
-                f.write(self.AssignedPipetOption.get() + "\n")
+                dict = {"label":self.PlateLabel.get(),"index":str(self.index),
+                        "AssignedPipetOption":self.AssignedPipetOption.get()}
+                f.write(json.dumps(dict))
 
             elif self.PlateOptionMenu.get() == "Well plate":
                 f.write("Well plate" + "\n")
-                f.write(self.PlateLabel.get() + "\n")
-                f.write(str(self.index) + "\n\n")
 
                 # initialize variables
                 data = []
@@ -271,19 +277,17 @@ class InputFrame(customtkinter.CTkFrame):
                 positions += tuberackpos + "/" + self.MQposition.get()
 
                 # write to file:
-                f.write(str(dimension) + "\n")
-                f.write(names_conc + "\n")
-                f.write(positions + "\n")
-                f.write(ranges[:-1] + "\n")
-                f.write(str(self.index) + "\n")
-                f.write(str(self.WorkingVolume.get()) + "\n")
+                ####STOPPED HERE
+                dict = {"label": self.PlateLabel.get(), "index": self.index, "dimension":str(dimension),
+                        "names_conc":names_conc, "positions":positions, "ranges":ranges,
+                        "WorkingVolume":self.WorkingVolume.get(), "Tuberack":self.TubeRack.get()}
+                f.write(json.dumps(dict))
+                #also allow for 3D!!!!!! TODO
 
             elif self.PlateOptionMenu.get() == "Tube rack":
                 f.write("Tube rack" + "\n")
-                f.write(self.PlateLabel.get() + "\n")
-                f.write(str(self.index) + "\n")
-
-            f.write("\n")
+                dict = {"label": self.PlateLabel.get(), "index": str(self.index)}
+                f.write(json.dumps(dict))
         # removes frame
         self.destroy()
 
@@ -310,12 +314,12 @@ class InputFrame(customtkinter.CTkFrame):
             Gradient = customtkinter.CTkLabel(master=frame_salt, text="range:", width=50, anchor="e")
             Gradient.grid(row=0, column=4)
 
-            FromRange = customtkinter.CTkEntry(master=frame_salt, width=50)
+            FromRange = customtkinter.CTkEntry(master=frame_salt, width=40)
             FromRange.grid(row=0, column=5, padx=5)
 
             customtkinter.CTkLabel(master=frame_salt, text="-", width=1).grid(row=0, column=6, padx=2)
 
-            ToRange = customtkinter.CTkEntry(master=frame_salt, width=50)
+            ToRange = customtkinter.CTkEntry(master=frame_salt, width=40)
             ToRange.grid(row=0, column=7, padx=5)
 
         PositionLabel = customtkinter.CTkLabel(master=frame_salt, text="position: ", width=60)
@@ -323,6 +327,15 @@ class InputFrame(customtkinter.CTkFrame):
 
         Position = customtkinter.CTkEntry(master=frame_salt, width=40)
         Position.grid(row=0, column=9)
+
+        def remove_event():
+            frame_salt.destroy()
+            #remove also from self.dict
+            del self.dict_compounds[irow]
+
+        RemoveButton = customtkinter.CTkButton(master = frame_salt, command = remove_event, fg_color = "firebrick",
+                                               text = "x", width = 0.05)
+        RemoveButton.grid(row = 0, column = 10)
 
         # update row variable for compounds
         self.dict_compounds[self.irow] = frame_salt
@@ -352,12 +365,12 @@ class InputFrame(customtkinter.CTkFrame):
             Gradient = customtkinter.CTkLabel(master=frame_precipitate, text="range:", width=50, anchor="e")
             Gradient.grid(row=0, column=4)
 
-            FromRange = customtkinter.CTkEntry(master=frame_precipitate, width=50)
+            FromRange = customtkinter.CTkEntry(master=frame_precipitate, width=40)
             FromRange.grid(row=0, column=5, padx=5)
 
             customtkinter.CTkLabel(master=frame_precipitate, text="-", width=1).grid(row=0, column=6, padx=2)
 
-            ToRange = customtkinter.CTkEntry(master=frame_precipitate, width=50)
+            ToRange = customtkinter.CTkEntry(master=frame_precipitate, width=40)
             ToRange.grid(row=0, column=7, padx=5)
 
         PositionLabel = customtkinter.CTkLabel(master=frame_precipitate, text="position: ", width=60)
@@ -365,6 +378,15 @@ class InputFrame(customtkinter.CTkFrame):
 
         Position = customtkinter.CTkEntry(master=frame_precipitate, width=40)
         Position.grid(row=0, column=9)
+
+        def remove_event():
+            frame_precipitate.destroy()
+            #remove also from self.dict
+            del self.dict_compounds[irow]
+
+        RemoveButton = customtkinter.CTkButton(master = frame_precipitate, command = remove_event, fg_color = "firebrick",
+                                               text = "x", width = 0.05)
+        RemoveButton.grid(row = 0, column = 10)
 
         # update row variable for compounds
         self.dict_compounds[self.irow] = frame_precipitate
@@ -393,12 +415,12 @@ class InputFrame(customtkinter.CTkFrame):
             Gradient = customtkinter.CTkLabel(master=frame_buffer, text="range:", width=50, anchor="e")
             Gradient.grid(row=0, column=4)
 
-            FromRange = customtkinter.CTkEntry(master=frame_buffer, width=50)
+            FromRange = customtkinter.CTkEntry(master=frame_buffer, width=40)
             FromRange.grid(row=0, column=5, padx=5)
 
             customtkinter.CTkLabel(master=frame_buffer, text="-", width=1).grid(row=0, column=6, padx=2)
 
-            ToRange = customtkinter.CTkEntry(master=frame_buffer, width=50)
+            ToRange = customtkinter.CTkEntry(master=frame_buffer, width=40)
             ToRange.grid(row=0, column=7, padx=5)
 
         PositionLabel = customtkinter.CTkLabel(master=frame_buffer, text="position: ", width=60)
@@ -407,6 +429,15 @@ class InputFrame(customtkinter.CTkFrame):
         Position = customtkinter.CTkEntry(master=frame_buffer, width=40)
         ##TODO add color of original insert in grey to make distinction
         Position.grid(row=0, column=9)
+
+        def remove_event():
+            frame_buffer.destroy()
+            #remove also from self.dict
+            del self.dict_compounds[irow]
+
+        RemoveButton = customtkinter.CTkButton(master = frame_buffer, command = remove_event, fg_color = "firebrick",
+                                               text = "x", width = 0.05)
+        RemoveButton.grid(row = 0, column = 10)
 
         # update row variable for compounds
         self.dict_compounds[self.irow] = frame_buffer
@@ -587,6 +618,7 @@ class ControlFrame(customtkinter.CTkFrame):
                                                 command=self.generate_protocol)
         self.button13.grid(column=7, row=0, padx=1, pady=2, sticky="we")
 
+        #Suggestion: parmeter file constrained requirements?
         self.button14 = customtkinter.CTkButton(master=self.frame_bottom,
                                                 text="Simulate Protocol",
                                                 command=self.simulate_protocol)
@@ -619,13 +651,26 @@ class ControlFrame(customtkinter.CTkFrame):
                 with open(f, "r") as f:
                     type = f.readline().replace("\n", "")
                     if type == "Tube rack":
-                        tuberacks += f.read()
+                        dictTur = json.loads(f.read())
+                        for key in dictTur:
+                            if key != "":
+                                tips += dictTur.get(key) + "\n"
+                            else:
+                                raise Exception("not all necessary input specified")
+
                     elif type == "Tip rack":
-                        tips += f.read()
+                        dictTir = json.loads(f.read())
+                        for key in dictTir.keys():
+                            if key != "":
+                                tips += dictTir.get(key) + "\n"
+                            else:
+                                raise Exception("not all necessary input specified")
+
                     elif type == "Well plate":
-                        segments = f.read().split("\n\n")
-                        plates += segments[0] + "\n"
-                        screens += segments[1] + "\n"
+                        plates += f.readline()
+                        dict = json.dumps(f.readline())
+                        screens += dict["dimension"] + "\n" + dict["names_conc"] + "\n" + dict["positions"] + "\n"+ dict["ranges"] + "\n" + dict["index"] + "\n" + dict["WorkingVolume"] + "\n"
+
 
         instruments += self.AddPipet.get() + "\n" + self.optionmenu_pip.get() + "\n"
         if self.hasTwoPipets == True:
