@@ -40,6 +40,7 @@ def run(protocol: protocol_api.ProtocolContext):
         print("This screen needs:")
         for c in total_vols.keys():
             print(str(c) + ":\t" + str(total_vols[c]) + " uL")
+        print('\n')
 
         # reorder the indexing of the wells so that wells are filled row by row
         well_order = np.array(range(len(screen.plate.rows()[0]) * len(screen.plate.columns()[0]))) \
@@ -109,7 +110,7 @@ def run(protocol: protocol_api.ProtocolContext):
                 else:
                     # Transfer the volume and blow out, but avoid putting the tip into the liquid to reuse it for the other wells
                     # Adapt the instrument's aspiration well bottom clearance depending on the available stock volume. 
-                    # ASSUMPTION: stock tubes initially are full. We'll take a large margin of 2.5 cm to anticipate it's not.
+                    # ASSUMPTION: stock tubes initially are full. We'll take a large margin of 3.5 cm to anticipate it's not.
                     instrument.well_bottom_clearance.aspirate = max(stock_vol / stock.max_volume * stock.depth - 35, 1)
                     instrument.well_bottom_clearance.dispense = well.depth
                     instrument.transfer(vol, stock, well, new_tip = "never")
@@ -380,9 +381,17 @@ class twoD(Screen):
             out = self.calcConcentration(compound, outConc)
             if dimension == 'h':
                 out = np.tile(np.array(out), (len(self.plate.columns()[0]), 1)).flatten().tolist()
+                outConc = np.tile(np.array(outConc), (len(self.plate.columns()[0]), 1))
             elif dimension == 'v':
                 out = np.tile(np.array(out), (len(self.plate.rows()[0]), 1)).transpose().flatten().tolist()
+                outConc = np.tile(np.array(outConc), (len(self.plate.rows()[0]), 1)).transpose()
+            elif dimension == 'a':
+                outConc = np.array(outConc).reshape((len(self.plate.columns()[0]), len(self.plate.rows()[0])))
             dict[compound] = out
+            
+            print(str(compound) + ":")
+            print(outConc)
+            print('\n')
             
             # Count the volumes of non-Diluent compounds
             totVol += np.array(out)
