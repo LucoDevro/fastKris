@@ -3,17 +3,20 @@ import customtkinter
 from tkinter.font import BOLD
 from tkinter import simpledialog
 from tkinter import filedialog as fd
+from tkinter.filedialog import askopenfilename
 import os
 import re
 import webbrowser
 import json
 import ScriptBuilderGUI
+import easygui as e
+
 
 customtkinter.set_appearance_mode("Dark")  # Modes: "Dark", "Light"
 customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
 
 class InputFrame(customtkinter.CTkFrame):
-    def __init__(self, control, parent, index):
+    def __init__(self, parent, index):
         super().__init__(parent)
         self.units = {"salt": "M", "precipitate": "m%", "buffer": "M"}
         self.units_paramfile = {"salt": "M", "precipitate": "%", "buffer": "M"}
@@ -36,17 +39,16 @@ class InputFrame(customtkinter.CTkFrame):
         # self.frame_compounds.grid_propagate(False)
 
         self.frame_down = customtkinter.CTkFrame(master=self)
-        self.frame_down.columnconfigure(0, weight=1)  # , uniform="")
+        self.frame_down.columnconfigure([0,1,2], weight = 1)
         self.frame_down.grid(row=2, column=0, sticky="nsew")
 
         customtkinter.CTkLabel(master=self.frame_up, text="name plate: ").grid(row=0, column=0, sticky="W")
 
         self.PlateLabel = customtkinter.CTkEntry(master=self.frame_up)
 
-        ##ADDED GUI4
         self.valuesPlateOptionMenu = ["Choose...", "Tube rack", "Tip rack", "Well plate"]
         self.plateOptionVar = customtkinter.StringVar()
-        ##ADDED GUI4
+
         #if file already exists:
         filename = "Input_plate" + str(self.index) + ".txt"
         completeFilename = os.path.join(self.parent.inputsPath, filename)
@@ -74,7 +76,6 @@ class InputFrame(customtkinter.CTkFrame):
                     self.PlateOptionMenu.set(self.valuesPlateOptionMenu[3])
         else:
             self.PlateOptionMenu.set(self.valuesPlateOptionMenu[0])
-        ##END ADDED GUI4
         self.PlateOptionMenu.grid(row=1, column=1, sticky="nsew")
 
         # set fixed for now, font family can be obtained dynamically (not implemented yet)
@@ -86,21 +87,21 @@ class InputFrame(customtkinter.CTkFrame):
         self.irow = 8
         self.dict_compounds = {}
 
-        ##ADDED GUI4
         #print(self.PlateOptionMenu.get())
         self.CompoundsFrameEvent(self.PlateOptionMenu.get())
-        ##END ADDED GUI4
 
-        self.buttonApply = customtkinter.CTkButton(master=self.frame_down, text="Apply", command=self.button_event)
-        self.buttonApply.grid(column=0, row=3)
+        self.buttonReset = customtkinter.CTkButton(master=self.frame_down, text="reset", command=self.reset, fg_color="grey")
+        self.buttonReset.grid(column = 0, row = 3, sticky = "nsew")
+        self.buttonCancel = customtkinter.CTkButton(master=self.frame_down, text="cancel", command=self.cancel, fg_color="grey")
+        self.buttonCancel.grid(column=1, row=3, sticky = "nsew")
+        self.buttonApply = customtkinter.CTkButton(master=self.frame_down, text="apply", command=self.button_event)
+        self.buttonApply.grid(column=2, row=3, sticky = "nsew")
         # change to row = 1, column = 0 to let it appear on the bottom instead of the right
         self.grid(column=1, row=0, padx=5, pady=5, sticky="nsew")
 
     def CompoundsFrameEvent(self, choice):
-        ##ADDED GUI4
         filename = "Input_plate" + str(self.index) + ".txt"
         completeFilename = os.path.join(self.parent.inputsPath, filename)
-        ##END ADDED GUI4
 
         if choice == "Tip rack":
             self.frame_Compounds_input.destroy()
@@ -117,7 +118,6 @@ class InputFrame(customtkinter.CTkFrame):
                                                                    values=["left", "right"])
             self.AssignedPipetOption.grid(row=2, column=1, sticky="nsew")
 
-            ##ADDED GUI4
             # bc also called if no prev info known
             if os.path.exists(completeFilename):
                 with open(completeFilename, "r") as f:
@@ -125,35 +125,9 @@ class InputFrame(customtkinter.CTkFrame):
                     if "Tip rack" in lines[0]:
                         self.AssignedPipetOption.set(json.loads(lines[1])['AssignedPipetOption'])
 
-            ##END ADDED GUI4
 
         elif choice == "Tube rack":
             self.frame_Compounds_input.destroy()
-            """
-            self.frame_Compounds_input = customtkinter.CTkFrame(master=self.frame_compounds, width=680)
-            self.frame_Compounds_input.grid(sticky = "nw")
-            self.frame_Compounds_input.propagate(False)
-
-            self.CompoundsLabel = customtkinter.CTkLabel(master=self.frame_Compounds_input, text="Compounds",
-                                                         text_font=('Segoe UI', 10, BOLD))
-            self.CompoundsLabel.grid(row=2, column=0, sticky="nw")
-            self.CompoundsLabel.grid_propagate(False)
-
-            self.AddSalt = customtkinter.CTkButton(master=self.frame_Compounds_input, text="Add salt",
-                                                   command=self.addsalt,
-                                                   width=215)
-            self.AddSalt.grid(row=3, column=0, padx=5, sticky="nw")
-            self.AddSalt.grid_propagate(False)
-            self.AddBuffer = customtkinter.CTkButton(master=self.frame_Compounds_input, text="Add buffer",
-                                                     command= self.addbuffer,
-                                                     width=215)
-            self.AddBuffer.grid(row=3, column=1, padx=5, sticky="nw")
-            self.AddBuffer.grid_propagate(False)
-            self.AddPrecipitate = customtkinter.CTkButton(master=self.frame_Compounds_input, text="Add Precipitate",
-                                                          command=self.addprecipitate, width=215)
-            self.AddPrecipitate.grid(row=3, column=2, padx=5, sticky="nw")
-            self.AddPrecipitate.grid_propagate(False)
-            """
 
         elif choice == "Well plate":
             self.frame_Compounds_input.destroy()
@@ -193,8 +167,6 @@ class InputFrame(customtkinter.CTkFrame):
 
             self.frame_Compounds_input.grid_rowconfigure(6, minsize=5)  # empty row with minsize as spacing
 
-            ##ADDED GUI4
-
             if os.path.exists(completeFilename):
                 with open(completeFilename, "r") as f:
                     lines = f.readlines()
@@ -208,12 +180,10 @@ class InputFrame(customtkinter.CTkFrame):
                         for j in range(len(compounds)):
                             if 'MQ' == compounds[j]:
                                 #in case no position previously given by user, suppress AttributeError
-                                ##Added NOW
                                 try:
                                     self.MQposition.insert(END,re.search(r"/(\w+)",positions[j]).group(1))
                                 except AttributeError:
                                     pass
-            ##END ADDED GUI4
 
             self.AddSalt = customtkinter.CTkButton(master=self.frame_Compounds_input, text="Add salt",
                                                    command=lambda *args: self.addsalt(True),
@@ -267,75 +237,96 @@ class InputFrame(customtkinter.CTkFrame):
     def openHelpPositions(self):
         webbrowser.open_new(r"https://docs.opentrons.com/ot1/containers.html")
 
+    def reset(self):
+        Filename = os.path.join(self.parent.inputsPath, "Input_plate" + str(self.index) + ".txt")
+        try:
+            os.unlink(Filename)
+            InputFrame(self.parent, self.index)
+            self.destroy()
+        except FileNotFoundError:
+            InputFrame(self.parent, self.index)
+            self.destroy()
+            return None
+        except OSError as err:
+            e.msgbox(repr(err), "Error")
+            return None
+
+    def cancel(self):
+        self.destroy()
+
     ##changed GUI4
     def button_event(self):
-        filename = "Input_plate" + str(self.index) + ".txt"
-        completeFilename = os.path.join(self.parent.inputsPath, filename)
+        if self.PlateOptionMenu.get() == "Choose...":
+            self.destroy()
+            #Return exits the current function or method. Pass is a null operation and allows execution to continue at the next statement
+            return None
+        else:
+            filename = "Input_plate" + str(self.index) + ".txt"
+            completeFilename = os.path.join(self.parent.inputsPath, filename)
 
-        with open(completeFilename, "w+") as f:
-            if self.PlateOptionMenu.get() == "Tip rack":
-                f.write("Tip rack" + "\n")
-                dict = {"label":self.PlateLabel.get(),"index":str(self.index),
-                        "AssignedPipetOption":self.AssignedPipetOption.get()}
-                f.write(json.dumps(dict))
+            with open(completeFilename, "w+") as f:
+                if self.PlateOptionMenu.get() == "Tip rack":
+                    f.write("Tip rack" + "\n")
+                    dict = {"label":self.PlateLabel.get(),"index":str(self.index),
+                            "AssignedPipetOption":self.AssignedPipetOption.get()}
+                    f.write(json.dumps(dict))
 
-            elif self.PlateOptionMenu.get() == "Well plate":
-                f.write("Well plate" + "\n")
+                elif self.PlateOptionMenu.get() == "Well plate":
+                    f.write("Well plate" + "\n")
 
-                # initialize variables
-                data = []
-                iter = 0
-                dimension = 0
+                    # initialize variables
+                    data = []
+                    iter = 0
+                    dimension = 0
 
-                for frame in self.dict_compounds.values():
-                    classname = re.search("(\w+):", frame.winfo_children()[0].winfo_children()[1].cget("text"))
-                    data.append(classname.group(1))
-                    iter += 1
-                    data.append([])
-                    for child in frame.winfo_children():
-                        for widget in child.winfo_children():
-                            if widget.winfo_class() == 'Entry':
-                                data[iter].append(widget.get())
-                    iter += 1
+                    for frame in self.dict_compounds.values():
+                        classname = re.search("(\w+):", frame.winfo_children()[0].winfo_children()[1].cget("text"))
+                        data.append(classname.group(1))
+                        iter += 1
+                        data.append([])
+                        for child in frame.winfo_children():
+                            for widget in child.winfo_children():
+                                if widget.winfo_class() == 'Entry':
+                                    data[iter].append(widget.get())
+                        iter += 1
 
-                # parse:
-                names_conc = ""
-                ranges = ""
-                positions = ""
-                labels_compounds = ""
-                tuberackpos = str(self.TubeRack.get())
-                for i in range(int(len(data) / 2)):
-                    labels_compounds += data[i*2] + ","
-                    # each element of the form: label space (conc unit)
-                    names_conc += data[i * 2 + 1][0] + " (" + str(data[i * 2 + 1][1]) + str(
-                        self.units_paramfile.get(data[2 * i])) + "),"
-                    # user friendly
-                    if data[i * 2 + 1][2] != data[i * 2 + 1][3]:
-                        dimension += 1
-                        if data[i * 2 + 1][2] > data[i * 2 + 1][3]:
-                            ranges += str(data[i * 2 + 1][2]) + "-" + str(data[i * 2 + 1][3]) + ","
-                            # TODO: add warning to let the user now they were switched
-                    positions += tuberackpos + "/" + data[i * 2 + 1][4] + ","
-                    ranges += str(data[i * 2 + 1][2]) + "-" + str(data[i * 2 + 1][3]) + ","
-                names_conc += "MQ"
-                ranges = ranges[:-1]
-                labels_compounds = labels_compounds[:-1]
-                positions += tuberackpos + "/" + self.MQposition.get()
+                    # parse:
+                    names_conc = ""
+                    ranges = ""
+                    positions = ""
+                    labels_compounds = ""
+                    tuberackpos = str(self.TubeRack.get())
+                    for i in range(int(len(data) / 2)):
+                        labels_compounds += data[i*2] + ","
+                        # each element of the form: label space (conc unit)
+                        names_conc += data[i * 2 + 1][0] + " (" + str(data[i * 2 + 1][1]) + str(
+                            self.units_paramfile.get(data[2 * i])) + "),"
+                        # user friendly
+                        if data[i * 2 + 1][2] != data[i * 2 + 1][3]:
+                            dimension += 1
+                            if data[i * 2 + 1][2] > data[i * 2 + 1][3]:
+                                ranges += str(data[i * 2 + 1][2]) + "-" + str(data[i * 2 + 1][3]) + ","
+                                # TODO: add warning to let the user now they were switched
+                        positions += tuberackpos + "/" + data[i * 2 + 1][4] + ","
+                        ranges += str(data[i * 2 + 1][2]) + "-" + str(data[i * 2 + 1][3]) + ","
+                    names_conc += "MQ"
+                    ranges = ranges[:-1]
+                    labels_compounds = labels_compounds[:-1]
+                    positions += tuberackpos + "/" + self.MQposition.get()
 
-                # write to file:
-                ####STOPPED HERE
-                dict = {"label": self.PlateLabel.get(), "index": self.index, "dimension":str(dimension),
-                        "names_conc":names_conc, "positions":positions, "ranges":ranges,
-                        "WorkingVolume":self.WorkingVolume.get(), "Tuberack":self.TubeRack.get(), "labels_compounds":labels_compounds}
-                f.write(json.dumps(dict))
-                #also allow for 3D!!!!!! TODO
+                    # write to file:
+                    dict = {"label": self.PlateLabel.get(), "index": self.index, "dimension":str(dimension),
+                            "names_conc":names_conc, "positions":positions, "ranges":ranges,
+                            "WorkingVolume":self.WorkingVolume.get(), "Tuberack":self.TubeRack.get(), "labels_compounds":labels_compounds}
+                    f.write(json.dumps(dict))
+                    #also allow for 3D!!!!!! TODO
 
-            elif self.PlateOptionMenu.get() == "Tube rack":
-                f.write("Tube rack" + "\n")
-                dict = {"label": self.PlateLabel.get(), "index": str(self.index)}
-                f.write(json.dumps(dict))
-        # removes frame
-        self.destroy()
+                elif self.PlateOptionMenu.get() == "Tube rack":
+                    f.write("Tube rack" + "\n")
+                    dict = {"label": self.PlateLabel.get(), "index": str(self.index)}
+                    f.write(json.dumps(dict))
+            # removes frame
+            self.destroy()
 
     def addsalt(self, include_range=False, compoundlabel="",compoundstock="",fromrange="",torange="",position=""):
         irow = self.irow
@@ -435,7 +426,6 @@ class InputFrame(customtkinter.CTkFrame):
         Position.insert(END,position)
         Position.grid(row=0, column=9)
 
-        #TODO: check whether the deleted previously saved compound does not come back
         def remove_event():
             frame_precipitate.destroy()
             #remove also from self.dict
@@ -488,7 +478,6 @@ class InputFrame(customtkinter.CTkFrame):
         PositionLabel.grid(row=0, column=8)
 
         Position = customtkinter.CTkEntry(master=frame_buffer, width=40)
-        ##TODO add color of original insert in grey to make distinction
         Position.insert(END, position)
         Position.grid(row=0, column=9)
 
@@ -557,7 +546,6 @@ class ControlFrame(customtkinter.CTkFrame):
         self.frame_left.grid_rowconfigure(8, minsize=20)  # empty row with minsize as spacing
         self.frame_left.grid_rowconfigure(11, minsize=10)  # empty row with minsize as spacing
 
-        ##ADDED
         self.frame_left_pipet = customtkinter.CTkFrame(master=self.frame_left)
         self.frame_left_pipet.grid(column=0, row=1)
         self.AddPipetLabel = customtkinter.CTkLabel(master=self.frame_left_pipet, text="Add pipet: ", width=30)
@@ -681,7 +669,6 @@ class ControlFrame(customtkinter.CTkFrame):
         self.button13.grid(column=7, row=0, padx=1, pady=2, sticky="we")
 
         #Suggestion: parmeter file constrained requirements?
-        #Added NOW
         self.button14 = customtkinter.CTkButton(master=self.frame_bottom,
                                                 text="Generate Protocol from parameter file",
                                                 command=self.simulate_protocol)
@@ -691,7 +678,7 @@ class ControlFrame(customtkinter.CTkFrame):
             # index not used for now in the application, will be important later
             if isinstance(self.frame_right, InputFrame):
                 self.frame_right.destroy()  # else if mulitple buttons pressed, all frames will stack
-            self.frame_right = InputFrame(self, parent, index)
+            self.frame_right = InputFrame(parent, index)
             self.frame_right.tkraise()
 
     def change_appearance_mode(self, new_appearance_mode):
@@ -699,75 +686,179 @@ class ControlFrame(customtkinter.CTkFrame):
 
     ##CHANGED NOW
     def generate_protocol(self):
-        # read all information in
 
-        directory = os.path.join(self.parent.inputsPath)
-        tips = ""
-        tuberacks = ""
-        instruments = ""
-        plates = ""
-        screens = ""
-        for filename in os.listdir(directory):
-            f = os.path.join(directory, filename)
-            # checking if it is a file
+        protocolFilename = simpledialog.askstring("Protocol filename", "filename for new protocol\t\t\t")
+        #if not cancelled
+        if protocolFilename:
+            protocolFilename += ".py"
 
-            if os.path.isfile(f):
-                with open(f, "r") as f:
-                    type = f.readline().replace("\n", "")
-                    if type == "Tube rack":
-                        dictTur = json.loads(f.read())
-                        for key in dictTur:
-                            if key != "":
-                                tuberacks += dictTur.get(key) + "\n"
+            # read in compound library:
+            with open('compLibrary.txt', 'r') as l:
+                lines = l.read()
+                lines = lines.split("\n")[:-1]
+                l.close()
+            labels = str(lines[0::3])
+
+            # read all information in
+            directory = os.path.join(self.parent.inputsPath)
+            tips = ""
+            tuberacks = ""
+            instruments = ""
+            plates = ""
+            screens = ""
+            for filename in os.listdir(directory):
+                f = os.path.join(directory, filename)
+                # checking if it is a file
+
+                if os.path.isfile(f):
+                    with open(f, "r") as f:
+                        type = f.readline().replace("\n", "")
+                        if type == "Tube rack":
+                            dictTur = json.loads(f.read())
+                            for key in dictTur:
+                                if dictTur.get(key) != "":
+                                    tuberacks += dictTur.get(key) + "\n"
+                                else:
+                                    e.msgbox("Empty string value for name plate: " + filename, "Error")
+                                    return None
+
+                        elif type == "Tip rack":
+                            dictTir = json.loads(f.read())
+                            for key in dictTir.keys():
+                                if dictTir.get(key) != "":
+                                    tips += dictTir.get(key) + "\n"
+                                else:
+                                    e.msgbox("Empty string value for name plate: " + filename, "Error")
+                                    return None
+
+                        elif type == "Well plate":
+                            dict = json.loads(f.readline())
+                            plates += dict["label"] + "\n" + str(dict["index"]) + "\n"
+                            if dict["label"] == "":
+                                e.msgbox("Empty string value for name plate: " + filename, "Error")
+                                return None
+
+                            screens += str(dict["dimension"]) + "\n"
+                            if  ""  not in dict["names_conc"].split(","):
+                                screens += dict["names_conc"] + "\n"
                             else:
-                                raise Exception("not all necessary input specified")
+                                e.msgbox("Empty string value for name or concentration of one of the compounds: " + filename, "Error")
+                                return None
 
-                    elif type == "Tip rack":
-                        dictTir = json.loads(f.read())
-                        for key in dictTir.keys():
-                            if key != "":
-                                tips += dictTir.get(key) + "\n"
+                            if   ""  not in dict["positions"].split(","):
+                                screens += dict["positions"] + "\n"
                             else:
-                                #Added NOW
-                                #TODO: make clearer error message
-                                raise Exception("not all necessary input specified")
+                                e.msgbox("Empty string value for position of one of the compounds: " + filename, "Error")
+                                return None
 
-                    elif type == "Well plate":
-                        dict = json.loads(f.readline())
-                        plates += dict["label"] + "\n" + str(dict["index"]) + "\n"
-                        ##Added NOW
-                        screens += str(dict["dimension"]) + "\n" + dict["names_conc"] + "\n" + dict["positions"] + "\n"+ dict["ranges"] + "\n" + str(dict["index"]) + "\n" + str(dict["WorkingVolume"]) + "\n"
+                            #STOPPED HERE
+                            if all(not (string.endswith("-") or string.startswith("-")) for string in dict["ranges"].split(",")):
+                                screens += dict["ranges"] + "\n"
+                            else:
+                                e.msgbox("Empty string value for ranges of one of the compounds: " + filename, "Error")
+                                return None
 
+                            screens += str(dict["index"]) + "\n"
 
-        instruments += self.AddPipet.get() + "\n" + self.optionmenu_pip.get() + "\n"
-        if self.hasTwoPipets == True:
-            instruments += self.AddPipet2.get() + "\n" + self.optionmenu_pip2.get() + "\n"
+                            if "" != dict["WorkingVolume"]:
+                                screens += str(dict["WorkingVolume"]) + "\n"
+                            else:
+                                e.msgbox("Empty string value for the working volume in: " + filename,
+                                         "Error")
+                                return None
 
-        # The name of the parameterfile will be: projectname (gotten from first window) .param.txt
-        paramFilename = os.path.basename(self.parent.UserPath) + ".param.txt"
-        paramFilePath = os.path.join(self.parent.UserPath, paramFilename)
-        # print("path", paramFilePath)
-        with open(paramFilePath, "w+") as f:
-            f.write(tips + "\n")
-            f.write(tuberacks + "\n")
-            f.write(instruments + "\n")
-            f.write(plates + "\n")
-            f.write(screens)
+                            #check if all compounds are already present in the library. Should salt and diluent be present ??
+                            names_conc = dict["names_conc"].split(",")[:-1]
+                            names = [i.split(" (")[0] for i in names_conc]
+                            labels_compounds = dict["labels_compounds"].split(",")
+                            concs = []
+                            for i in names_conc:
+                                concs.append(re.search(r"([0-9]+)", i.split(" (")[1]).group(1))
 
-        # TODO: how to connect to compound library:
-        # TODO: maybe it would make more sence if tube rack is where positions of compunds are defined
+                            if any(x not in labels for x in names_conc):
+                                with open("compLibrary.txt", "a") as f:
+                                    names_to_add = []
+                                    conc_to_add = []
+                                    labels_to_add = []
+                                    for idx in range(len(names_conc)):
+                                        if names_conc[idx] not in labels:
+                                            f.write(names_conc[idx] + "\n")
+                                            f.write(labels_compounds[idx].capitalize() + "\n")
+                                            f.write(concs[idx] + "\n")
+                                            names_to_add.append(names[idx])
+                                            labels_to_add.append(labels_compounds[idx])
+                                            conc_to_add.append(concs[idx])
 
-        ##ADDED NOW
-        # generate the protocol
-        ##leave for now, but change once added to left frame
-        protocolFilename = simpledialog.askstring("Protocol filename","filename for new protocol\t\t\t") + ".py"
-        ScriptBuilderGUI.runSriptBuilder(paramFilePath, os.path.join(self.parent.UserPath,protocolFilename))
+                                self.AddedToLibrary(names_to_add, conc_to_add, labels_to_add)
 
+            if self.AddPipet.get() != "":
+                instruments += self.AddPipet.get() + "\n" + self.optionmenu_pip.get() + "\n"
+            else:
+                e.msgbox("First pipet not specified", "Error")
+                return None
+
+            if self.hasTwoPipets == True:
+                if self.AddPipet2.get() != "":
+                    instruments += self.AddPipet2.get() + "\n" + self.optionmenu_pip2.get() + "\n"
+                else:
+                    e.msgbox("Second pipet not specified", "Error")
+                    return None
+
+            # The name of the parameterfile will be: projectname (gotten from first window) .param.txt
+            paramFilename = os.path.basename(self.parent.UserPath) + ".param.txt"
+            paramFilePath = os.path.join(self.parent.UserPath, paramFilename)
+            # print("path", paramFilePath)
+            with open(paramFilePath, "w+") as f:
+                f.write(tips + "\n")
+                f.write(tuberacks + "\n")
+                f.write(instruments + "\n")
+                f.write(plates + "\n")
+                f.write(screens)
+
+            # generate the protocol
+            ##leave for now, but change once added to left frame
+            ScriptBuilderGUI.runSriptBuilder(paramFilePath, os.path.join(self.parent.UserPath,protocolFilename))
+
+    def AddedToLibrary(self, names, concs, labels_compounds):
+        def OK_event():
+            root.destroy()
+
+        root = Toplevel()
+        root.protocol("WM_DELETE_WINDOW", OK_event)
+        root.title("Added to compound library")
+
+        frame = customtkinter.CTkFrame(root, width=600)
+        frame.grid()
+
+        for i in range(len(labels_compounds)):
+            customtkinter.CTkLabel(master=frame, text="compound " + str(i + 1)).grid(row=2 * i)
+            frameinside = customtkinter.CTkFrame(master=frame)
+            frameinside.grid(row=2 * i + 1, column=0, sticky="nsew")
+
+            customtkinter.CTkLabel(frameinside, text="name: ").grid(row=i * 4, column=0)
+            customtkinter.CTkLabel(frameinside, text=names[i]).grid(row=i * 4, column=1)
+
+            customtkinter.CTkLabel(frameinside, text="concentration: ").grid(row=i * 4 + 1, column=0)
+            customtkinter.CTkLabel(frameinside, text= concs[i]).grid(row=i * 4 + 1, column=1)
+
+            customtkinter.CTkLabel(frameinside, text="type: ").grid(row=i * 4 + 2, column=0)
+            customtkinter.CTkLabel(frameinside, text=labels_compounds[i]).grid(row=i * 4 + 2, column=1)
+
+            frameinside.grid_rowconfigure(i * 4 + 3, minsize=15)
+
+        customtkinter.CTkButton(master=frame, text='OK', command=OK_event).grid()
+        #else the mainloop halts
+        root.wait_window()
 
         # writeTemplate(paramFilePath)
 
     def simulate_protocol(self):
-        pass
+        parampath = askopenfilename()
+        print(parampath)
+        protocolFilename = simpledialog.askstring("Protocol filename", "filename for new protocol\t\t\t") + ".py"
+        #so you can give a paramfile in another  directory, but the protcolfile will be written to current project
+        ScriptBuilderGUI.runSriptBuilder(parampath, os.path.join(self.parent.UserPath, protocolFilename))
+
 
 class App(customtkinter.CTk):
     WIDTH = 1080
@@ -789,6 +880,11 @@ class App(customtkinter.CTk):
         if not os.path.isdir(parent_dir):
             os.mkdir(parent_dir)
         self.inputsPath = parent_dir
+
+        def close_window():
+            self.quit()
+
+        self.protocol("WM_DELETE_WINDOW", close_window)
 
 
 if __name__ == "__main__":
