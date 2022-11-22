@@ -4,6 +4,7 @@ from tkinter.font import BOLD
 from tkinter import simpledialog
 from tkinter import filedialog as fd
 from tkinter.filedialog import askopenfilename
+from tkinter import messagebox
 import os
 import re
 import webbrowser
@@ -18,7 +19,7 @@ customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "gre
 class InputFrame(customtkinter.CTkFrame):
     def __init__(self, parent, index):
         super().__init__(parent)
-        self.units = {"Salt": "M", "Precipitant": "m%", "Buffer": "M"}
+        self.units = {"Salt": "M", "Precipitant": "%", "Buffer": "M"}
         self.units_paramfile = {"Salt": "M", "Precipitant": "%", "Buffer": "M"}
         self.index = index
         self.parent = parent
@@ -110,7 +111,6 @@ class InputFrame(customtkinter.CTkFrame):
             self.frame_Compounds_input.grid()
             self.frame_Compounds_input.grid_rowconfigure(0, minsize=3)
 
-            # TODO: make ot align to the left of frame_compounds
             self.AssignedPipetLabel = customtkinter.CTkLabel(master=self.frame_Compounds_input,
                                                              text="Assigned to pipet:", anchor="w")
             self.AssignedPipetLabel.grid(row=2, column=0, sticky="nw")
@@ -187,17 +187,17 @@ class InputFrame(customtkinter.CTkFrame):
                                     pass
 
             self.AddSalt = customtkinter.CTkButton(master=self.frame_Compounds_input, text="Add salt",
-                                                   command=lambda *args: self.addsalt(True),
+                                                   command=lambda *args: self.addcompound("salt",True),
                                                    width=215)
             self.AddSalt.grid(row=7, column=0, padx=5, sticky="nw")
             self.AddSalt.grid_propagate(False)
             self.AddBuffer = customtkinter.CTkButton(master=self.frame_Compounds_input, text="Add buffer",
-                                                     command=lambda *args: self.addbuffer(True),
+                                                     command=lambda *args: self.addcompound("buffer",True),
                                                      width=215)
             self.AddBuffer.grid(row=7, column=1, padx=5, sticky="nw")
             self.AddBuffer.grid_propagate(False)
             self.AddPrecipitant = customtkinter.CTkButton(master=self.frame_Compounds_input, text="Add precipitant",
-                                                          command=lambda *args: self.addprecipitant(True),
+                                                          command=lambda *args: self.addcompound("precipitant",True),
                                                           width=215)
             self.AddPrecipitant.grid(row=7, column=2, padx=5, sticky="nw")
             self.AddPrecipitant.grid_propagate(False)
@@ -211,6 +211,8 @@ class InputFrame(customtkinter.CTkFrame):
                         names_conc = dict["names_conc"].split(",")[:-1]
                         #[letter for letter in 'human']
                         names = [i.split(" (")[0] for i in names_conc]
+                        #stopped here
+                        units = [re.search(r"[0-9]+([%M])", i.split(" (")[1]).group(1) for i in names_conc]
                         concs = []
                         for i in names_conc:
                             #bc will output " (M)" in case no concetnration provided by the user
@@ -225,12 +227,10 @@ class InputFrame(customtkinter.CTkFrame):
                         it = [names, concs, ranges, shortpositions]
                         if all(len(l) == len(labels_compounds) for l in it):
                             for i in range(len(labels_compounds)):
-                                if labels_compounds[i] == "Salt":
-                                    self.addsalt(True,names[i],concs[i],ranges[i].split("-")[0],ranges[i].split("-")[1], shortpositions[i])
-                                elif labels_compounds[i] == "Buffer":
-                                    self.addbuffer(True,names[i],concs[i],ranges[i].split("-")[0],ranges[i].split("-")[1], shortpositions[i])
-                                elif labels_compounds[i] == "Precipitant":
-                                    self.addprecipitant(True,names[i],concs[i],ranges[i].split("-")[0],ranges[i].split("-")[1], shortpositions[i])
+                                if labels_compounds[i] == "Salt" or labels_compounds[i] == "Buffer" or labels_compounds[i] == "Precipitant":
+                                    self.addcompound(labels_compounds[i].lower(),True,names[i],concs[i],ranges[i].split("-")[0],
+                                                     ranges[i].split("-")[1],shortpositions[i], units[i])
+
 
 
     def openHelpPositions(self):
@@ -277,7 +277,8 @@ class InputFrame(customtkinter.CTkFrame):
                     iter = 0
                     dimension = 0
 
-                    for frame in self.dict_compounds.values():
+                    for value in self.dict_compounds.values():
+                        frame = value["frame"]
                         classname = re.search("(\w+):", frame.winfo_children()[0].winfo_children()[1].cget("text"))
                         data.append(classname.group(1).capitalize())
                         iter += 1
@@ -286,6 +287,7 @@ class InputFrame(customtkinter.CTkFrame):
                             for widget in child.winfo_children():
                                 if widget.winfo_class() == 'Entry':
                                     data[iter].append(widget.get())
+                        data[iter].append(value["unit"].get())
                         iter += 1
 
                     # parse:
@@ -297,8 +299,7 @@ class InputFrame(customtkinter.CTkFrame):
                     for i in range(int(len(data) / 2)):
                         labels_compounds += data[i*2] + ","
                         # each element of the form: label space (conc unit)
-                        names_conc += data[i * 2 + 1][0] + " (" + str(data[i * 2 + 1][1]) + str(
-                            self.units_paramfile.get(data[2 * i])) + "),"
+                        names_conc += data[i * 2 + 1][0] + " (" + str(data[i * 2 + 1][1]) + data[i*2+1][5] + "),"
                         # user friendly
                         if data[i * 2 + 1][2] != data[i * 2 + 1][3]:
                             dimension += 1
@@ -317,7 +318,6 @@ class InputFrame(customtkinter.CTkFrame):
                             "names_conc":names_conc, "positions":positions, "ranges":ranges,
                             "WorkingVolume":self.WorkingVolume.get(), "Tuberack":self.TubeRack.get(), "labels_compounds":labels_compounds}
                     f.write(json.dumps(dict))
-                    #also allow for 3D!!!!!! TODO
 
                 elif self.PlateOptionMenu.get() == "Tube rack":
                     f.write("Tube rack" + "\n")
@@ -326,171 +326,66 @@ class InputFrame(customtkinter.CTkFrame):
             # removes frame
             self.destroy()
 
-    def addsalt(self, include_range=False, compoundlabel="",compoundstock="",fromrange="",torange="",position=""):
+    def addcompound(self, typecomp, include_range=False, compoundlabel="",compoundstock="",fromrange="",torange="",position="",unit=""):
         irow = self.irow
-        frame_salt = customtkinter.CTkFrame(master=self.frame_Compounds_input)
-        frame_salt.grid(row=irow, column=0, columnspan=3)
+        frame_comp = customtkinter.CTkFrame(master=self.frame_Compounds_input)
+        frame_comp.grid(row=irow, column=0, columnspan=3)
 
-        Label = customtkinter.CTkLabel(master=frame_salt, text="label salt: ", width=100)
+        Label = customtkinter.CTkLabel(master=frame_comp, text="label " + typecomp + ": ", width=100)
         Label.grid(row=0, column=0, padx=5)
         Label.grid_propagate(False)
 
-        CompoundLabel = customtkinter.CTkEntry(master=frame_salt)
+        CompoundLabel = customtkinter.CTkEntry(master=frame_comp, width = 100)
         CompoundLabel.insert(END,compoundlabel)
         CompoundLabel.grid(row=0, column=1)
 
-        Stock = customtkinter.CTkLabel(master=frame_salt, text="conc (" + self.units.get("Salt") + "): ", width=70)
+        Stock = customtkinter.CTkLabel(master=frame_comp, text="conc: " , width=50)
         Stock.grid(row=0, column=2, padx=5)
         Stock.grid_propagate(False)
 
-        CompoundStock = customtkinter.CTkEntry(master=frame_salt, width=50)
+        CompoundStock = customtkinter.CTkEntry(master=frame_comp, width=50)
         CompoundStock.insert(END, compoundstock)
         CompoundStock.grid(row=0, column=3)
 
         if include_range == True:
-            Gradient = customtkinter.CTkLabel(master=frame_salt, text="range:", width=50, anchor="e")
+            Gradient = customtkinter.CTkLabel(master=frame_comp, text="range:", width=50, anchor="e")
             Gradient.grid(row=0, column=4)
 
-            FromRange = customtkinter.CTkEntry(master=frame_salt, width=40)
+            FromRange = customtkinter.CTkEntry(master=frame_comp, width=40)
             FromRange.insert(END, fromrange)
             FromRange.grid(row=0, column=5, padx=5)
 
-            customtkinter.CTkLabel(master=frame_salt, text="-", width=1).grid(row=0, column=6, padx=2)
+            customtkinter.CTkLabel(master=frame_comp, text="-", width=1).grid(row=0, column=6, padx=2)
 
-            ToRange = customtkinter.CTkEntry(master=frame_salt, width=40)
+            ToRange = customtkinter.CTkEntry(master=frame_comp, width=40)
             ToRange.insert(END, torange)
             ToRange.grid(row=0, column=7, padx=5)
 
-        PositionLabel = customtkinter.CTkLabel(master=frame_salt, text="position: ", width=60)
-        PositionLabel.grid(row=0, column=8)
+        Unit = customtkinter.CTkOptionMenu(master = frame_comp, values=["M", "%"], width = 40)
+        if unit in ["%", "M"]:
+            Unit.set(unit)
+        Unit.grid(row = 0, column = 8)
+        Unit.grid_propagate(False)
 
-        Position = customtkinter.CTkEntry(master=frame_salt, width=40)
+        PositionLabel = customtkinter.CTkLabel(master=frame_comp, text="position: ", width=60)
+        PositionLabel.grid(row=0, column=9)
+
+        Position = customtkinter.CTkEntry(master=frame_comp, width=40)
         Position.insert(END, position)
-        Position.grid(row=0, column=9)
+        Position.grid(row=0, column=10)
 
         def remove_event():
-            frame_salt.destroy()
+            frame_comp.destroy()
             #remove also from self.dict
             del self.dict_compounds[irow]
 
-        RemoveButton = customtkinter.CTkButton(master = frame_salt, command = remove_event, fg_color = "firebrick",
+        RemoveButton = customtkinter.CTkButton(master = frame_comp, command = remove_event, fg_color = "firebrick",
                                                text = "x", width = 0.05)
-        RemoveButton.grid(row = 0, column = 10)
+        RemoveButton.grid(row = 0, column = 11)
 
         # update row variable for compounds
-        self.dict_compounds[self.irow] = frame_salt
+        self.dict_compounds[self.irow] = {"frame":frame_comp,"unit":Unit}
         self.irow = self.irow + 1
-
-    def addprecipitant(self, include_range=False, compoundlabel="",compoundstock="",fromrange="",torange="",position=""):
-        irow = self.irow
-        frame_precipitant = customtkinter.CTkFrame(master=self.frame_Compounds_input)
-        frame_precipitant.grid(row=irow, column=0, columnspan=5)
-
-        Label = customtkinter.CTkLabel(master=frame_precipitant, text="label precipitant: ", width=100)
-        Label.grid(row=0, column=0, padx=5)
-        Label.grid_propagate(False)
-
-        CompoundLabel = customtkinter.CTkEntry(master=frame_precipitant)
-        CompoundLabel.insert(END,compoundlabel)
-        CompoundLabel.grid(row=0, column=1)
-
-        Stock = customtkinter.CTkLabel(master=frame_precipitant, text="conc (" + self.units.get("Precipitant") + "): ", width=70)
-        Stock.grid(row=0, column=2, padx=5)
-        Stock.grid_propagate(False)
-
-        CompoundStock = customtkinter.CTkEntry(master=frame_precipitant, width=50)
-        CompoundStock.insert(END, compoundstock)
-        CompoundStock.grid(row=0, column=3)
-
-        if include_range == True:
-            Gradient = customtkinter.CTkLabel(master=frame_precipitant, text="range:", width=50, anchor="e")
-            Gradient.grid(row=0, column=4)
-
-            FromRange = customtkinter.CTkEntry(master=frame_precipitant, width=40)
-            FromRange.insert(END,fromrange)
-            FromRange.grid(row=0, column=5, padx=5)
-
-            customtkinter.CTkLabel(master=frame_precipitant, text="-", width=1).grid(row=0, column=6, padx=2)
-
-            ToRange = customtkinter.CTkEntry(master=frame_precipitant, width=40)
-            ToRange.insert(END,torange)
-            ToRange.grid(row=0, column=7, padx=5)
-
-        PositionLabel = customtkinter.CTkLabel(master=frame_precipitant, text="position: ", width=60)
-        PositionLabel.grid(row=0, column=8)
-
-        Position = customtkinter.CTkEntry(master=frame_precipitant, width=40)
-        Position.insert(END,position)
-        Position.grid(row=0, column=9)
-
-        def remove_event():
-            frame_precipitant.destroy()
-            #remove also from self.dict
-            del self.dict_compounds[irow]
-
-        RemoveButton = customtkinter.CTkButton(master = frame_precipitant, command = remove_event, fg_color = "firebrick",
-                                               text = "x", width = 0.05)
-        RemoveButton.grid(row = 0, column = 10)
-
-        # update row variable for compounds
-        self.dict_compounds[self.irow] = frame_precipitant
-        self.irow = self.irow + 1
-
-    def addbuffer(self, include_range=False, compoundlabel="",compoundstock="",fromrange="",torange="",position=""):
-        irow = self.irow
-        frame_buffer = customtkinter.CTkFrame(master=self.frame_Compounds_input)
-        frame_buffer.grid(row=irow, column=0, columnspan=3)
-
-        Label = customtkinter.CTkLabel(master=frame_buffer, text="label buffer: ", width=100)
-        Label.grid(row=0, column=0, padx=5)
-        Label.grid_propagate(False)
-
-        CompoundLabel = customtkinter.CTkEntry(master=frame_buffer)
-        CompoundLabel.insert(END,compoundlabel)
-        CompoundLabel.grid(row=0, column=1)
-
-        Stock = customtkinter.CTkLabel(master=frame_buffer, text="conc (" + self.units.get("Buffer") + "): ", width=70)
-        Stock.grid(row=0, column=2, padx=5)
-        Stock.grid_propagate(False)
-
-        CompoundStock = customtkinter.CTkEntry(master=frame_buffer, width=50)
-        CompoundStock.insert(END,compoundstock)
-        CompoundStock.grid(row=0, column=3)
-
-        if include_range == True:
-            Gradient = customtkinter.CTkLabel(master=frame_buffer, text="range:", width=50, anchor="e")
-            Gradient.grid(row=0, column=4)
-
-            FromRange = customtkinter.CTkEntry(master=frame_buffer, width=40)
-            FromRange.insert(END,fromrange)
-            FromRange.grid(row=0, column=5, padx=5)
-
-            customtkinter.CTkLabel(master=frame_buffer, text="-", width=1).grid(row=0, column=6, padx=2)
-
-            ToRange = customtkinter.CTkEntry(master=frame_buffer, width=40)
-            ToRange.insert(END, torange)
-            ToRange.grid(row=0, column=7, padx=5)
-
-        PositionLabel = customtkinter.CTkLabel(master=frame_buffer, text="position: ", width=60)
-        PositionLabel.grid(row=0, column=8)
-
-        Position = customtkinter.CTkEntry(master=frame_buffer, width=40)
-        Position.insert(END, position)
-        Position.grid(row=0, column=9)
-
-        def remove_event():
-            frame_buffer.destroy()
-            #remove also from self.dict
-            del self.dict_compounds[irow]
-
-        RemoveButton = customtkinter.CTkButton(master = frame_buffer, command = remove_event, fg_color = "firebrick",
-                                               text = "x", width = 0.05)
-        RemoveButton.grid(row = 0, column = 10)
-
-        # update row variable for compounds
-        self.dict_compounds[self.irow] = frame_buffer
-        self.irow = self.irow + 1
-
 
 class ControlFrame(customtkinter.CTkFrame):
 
@@ -788,7 +683,6 @@ class ControlFrame(customtkinter.CTkFrame):
                                 e.msgbox("Empty string value for position of one of the compounds: " + filename, "Error")
                                 return None
 
-                            #STOPPED HERE
                             if all(not (string.endswith("-") or string.startswith("-")) for string in dict["ranges"].split(",")):
                                 screens += dict["ranges"] + "\n"
                             else:
@@ -824,12 +718,17 @@ class ControlFrame(customtkinter.CTkFrame):
                                         conc_to_add.append(concs[idx])
 
             if len(names_conc_to_add) > 0:
-                with open("compLibrary.txt", "a") as f:
-                    for idx in range(len(names_conc_to_add)):
-                        f.write(names_conc_to_add[idx] + "\n")
-                        f.write(labels_to_add[idx].capitalize() + "\n")
-                        f.write(conc_to_add[idx] + "\n")
-                self.AddedToLibrary(names_conc_to_add, conc_to_add, labels_to_add)
+                answer = messagebox.askquestion(message = "Are you sure you want to continue and add following compounds to the library?\n" +
+                                                "\n".join(' '.join(map(str, tup)) for tup in list(zip(names_conc_to_add,labels_to_add,conc_to_add))))
+
+                if answer == "yes":
+                    with open("compLibrary.txt", "a") as f:
+                        for idx in range(len(names_conc_to_add)):
+                            f.write(names_conc_to_add[idx] + "\n")
+                            f.write(labels_to_add[idx].capitalize() + "\n")
+                            f.write(conc_to_add[idx] + "\n")
+                    #Is this still necessary? TODO
+                    #self.AddedToLibrary(names_conc_to_add, conc_to_add, labels_to_add)
 
             FilenamePipets = os.path.join(self.parent.inputsPath, "pipets.txt")
             if os.path.isfile(FilenamePipets):
@@ -854,39 +753,6 @@ class ControlFrame(customtkinter.CTkFrame):
             ##leave for now, but change once added to left frame
             ScriptBuilder.runScriptBuilder(paramFilePath, os.path.join(self.parent.UserPath, protocolFilename))
 
-    def AddedToLibrary(self, names, concs, labels_compounds):
-
-        def OK_event():
-            root.destroy()
-
-        root = Toplevel()
-        root.protocol("WM_DELETE_WINDOW", OK_event)
-        root.title("Added to library")
-
-        frame = customtkinter.CTkFrame(root, width=600)
-        frame.grid()
-
-        for i in range(len(labels_compounds)):
-            customtkinter.CTkLabel(master=frame, text="compound " + str(i + 1)).grid(row=2 * i)
-            frameinside = customtkinter.CTkFrame(master=frame)
-            frameinside.grid(row=2 * i + 1, column=0, sticky="nsew")
-
-            customtkinter.CTkLabel(frameinside, text="name: ").grid(row=i * 4, column=0)
-            customtkinter.CTkLabel(frameinside, text=names[i]).grid(row=i * 4, column=1)
-
-            customtkinter.CTkLabel(frameinside, text="concentration: ").grid(row=i * 4 + 1, column=0)
-            customtkinter.CTkLabel(frameinside, text= concs[i]).grid(row=i * 4 + 1, column=1)
-
-            customtkinter.CTkLabel(frameinside, text="type: ").grid(row=i * 4 + 2, column=0)
-            customtkinter.CTkLabel(frameinside, text=labels_compounds[i]).grid(row=i * 4 + 2, column=1)
-
-            frameinside.grid_rowconfigure(i * 4 + 3, minsize=15)
-
-        customtkinter.CTkButton(master=frame, text='OK', command=OK_event).grid()
-        #else the mainloop halts
-        root.wait_window()
-
-        # writeTemplate(paramFilePath)
 
     def simulate_protocol(self):
         parampath = askopenfilename()
