@@ -12,10 +12,7 @@ def runScriptBuilder(filename, protocolFilePath):
     tuberack_raw = str(lines[1].split("\n"))
     instr_raw = str(lines[2].split("\n"))
     plates_raw = str(lines[3].split("\n"))
-    if 'win' not in sys.platform:
-        screens_raw = str(lines[4].split('\n')[:-1])
-    else:
-        screens_raw = str(lines[4].split('\n'))
+    screens_raw = str(lines[4].split('\n')[:-1])
     
     # Reading compound library
     with open('compLibrary.txt', 'r') as l:

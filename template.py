@@ -281,11 +281,11 @@ def loadLibrary():
 class Screen:
 
     def __init__(self, range, compounds, plate, workVol, stocks):
-        self.range = range  # dictionary by Compound objects that need a concentration range reported
+        self.range = range  # dictionary of tuples by Compound objects
         self.compounds = compounds  # a list of Compound objects
         self.workVol = workVol # well working volume (int)
-        self.plate = plate # Wellplate object
-        self.stocks = stocks # Tuberack Well object
+        self.plate = plate # Labware object representing a well plate
+        self.stocks = stocks # List of Well objects
 
     def calcConcentration(self, compound, outConc):
         outVol = []
