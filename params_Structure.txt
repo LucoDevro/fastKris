@@ -1,0 +1,44 @@
+*****************************
+***STRUCTURE OF PARAMS.TXT***
+*****************************
+
+(Tipracks)
+Label
+Position (by slot number)
+Associated instrument (left or right)
+
+(Tuberacks)
+Label
+Position
+
+(Instruments)
+Pipette name
+Head mount (left or right)
+
+(Well plates)
+Label
+Position (by slot number)
+
+(Screens)
+Type
+Compounds (by label, comma-separated)
+Stock tubes of each compound (in format 'slot number/location of tube in that tuberack', comma-separated)
+Concentration ranges
+Associated well plate (by slot number)
+Working volume (in uL)
+
+(All blocks of the file are separated by a blank line (thus 2 \n characters).)
+(All entries within a block are not separated (thus 1 \n character).)
+(All fields within an entry are not separated (thus 1 \n character).)
+
+
+********************************
+**STRUCTURE OF COMPLIBRARY.TXT**
+********************************
+
+Label
+Type
+Stock concentration
+
+(All entries within a block are not separated (thus 1 \n character).)
+(All fields within an entry are not separated (thus 1 \n character).)
