@@ -1,3 +1,5 @@
+from opentrons import protocol_api
+
 metadata = {
     'apiLevel': '2.9',
     'protocolName': 'Crystallization screen',
@@ -30,7 +32,7 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Every screening experiment has its own object
     for screen in screens:
-        print("Executing Screen " + str(screens.index(screen)+1))
+        print("\nExecuting Screen " + str(screens.index(screen)+1))
         
         # Get dictionary by compound of lists of well volumes in the row-by-row preparation order
         vols = screen.getAllVol()
@@ -100,7 +102,7 @@ def run(protocol: protocol_api.ProtocolContext):
                 
                 # Only when adding the last compound, put the tip in the liquid, mix and drop the tip
                 if last:
-                    instrument.well_bottom_clearance.aspirate = max(stock_vol / stock.max_volume * stock.depth - 35, 1)
+                    instrument.well_bottom_clearance.aspirate = max(stock_vol / stock.max_volume * stock.depth - 40, 1)
                     instrument.well_bottom_clearance.dispense = well.depth / 2
                     instrument.transfer(vol, stock, well, new_tip = "never")
                     instrument.mix(repetitions = 3, volume = instrument.max_volume / 2)
@@ -110,8 +112,10 @@ def run(protocol: protocol_api.ProtocolContext):
                 else:
                     # Transfer the volume and blow out, but avoid putting the tip into the liquid to reuse it for the other wells
                     # Adapt the instrument's aspiration well bottom clearance depending on the available stock volume. 
-                    # ASSUMPTION: stock tubes initially are full. We'll take a large margin of 3.5 cm to anticipate it's not.
-                    instrument.well_bottom_clearance.aspirate = max(stock_vol / stock.max_volume * stock.depth - 35, 1)
+                    # ASSUMPTION: stock tubes initially are full. We'll take a large margin of 40 mm to anticipate it's not.
+                    # -> length of the smallest tip in the OpenTrons tip assortment (3.92 cm) + some clearance between 
+                    # the top of the tube and the liquid level of a full tube.
+                    instrument.well_bottom_clearance.aspirate = max(stock_vol / stock.max_volume * stock.depth - 40, 1)
                     instrument.well_bottom_clearance.dispense = well.depth
                     instrument.transfer(vol, stock, well, new_tip = "never")
                     instrument.blow_out()
@@ -135,9 +139,10 @@ def run(protocol: protocol_api.ProtocolContext):
                 big_pipette.drop_tip()
                 
     protocol.set_rail_lights(False)
-    print("DONE!\n\n\n")
+    print("\n\n\nDONE!")
+    print("Output of the OpenTrons simulation kernel will be displayed below when in simulation mode.\n\n\n")
 
-### Parses the parameter files, loads all required instruments and labware, and sets up the screening experiments
+### Parses the raw parameter file reads, loads all required instruments and labware, and sets up the screening experiments
 def setup(protocol):
     # parsing pipet tips
     tipsInput = tips_raw[0::3]
@@ -254,7 +259,7 @@ def setup(protocol):
 
     return [tips, tuberacks, instruments, plates, screens]
 
-### Parses and loads the compound library
+### Parses and loads the raw compound library reads
 def loadLibrary():
     compLibrary = {}
     if not(len(labels) == len(set(labels))):
@@ -287,11 +292,9 @@ class Screen:
         self.plate = plate # Labware object representing a well plate
         self.stocks = stocks # List of Well objects
 
+    # Convert a list of requested output concentrations to a list of pipette volumes of stock solution
     def calcConcentration(self, compound, outConc):
-        outVol = []
-        for conc in outConc:
-            outVol.append(round(compound.dilute(conc, self.workVol), 3))  # rounding up to 0.001 uL
-        return outVol
+        return [round(compound.dilute(conc, self.workVol), 3) for conc in outConc]  # rounding up to 0.001 uL
 
 
 class oneD(Screen):
@@ -300,12 +303,15 @@ class oneD(Screen):
         return '1D screen, ' + str(self.range) + str(self.compounds) + ' on plate ' + str(self.plate) + ' (' + str(
             self.workVol) + ' uL)'
 
+    # Returns a list of requested concentrations for the supplied compound
     def getOutConc(self, compound):
         
         # Get range of concentrations for compound 1
         return np.linspace(start=self.range[compound][0], stop=self.range[compound][1],
                            num=len(self.plate.wells())).tolist()
 
+    # Returns a dictionary by compound of lists of pipette volumes organised from the top left to the bottom right
+    # of the well plate, row by row
     def getAllVol(self):
         dict = {}
         
@@ -325,6 +331,12 @@ class oneD(Screen):
             out = self.calcConcentration(compound, outConc)
             dict[compound] = out
             
+            # verbose prints of the concentrations for this compound in the format of the well plate
+            outConc = np.array(outConc).reshape((len(self.plate.columns()[0]), len(self.plate.rows()[0])))
+            print(str(compound) + ":")
+            print(outConc)
+            print('\n')
+            
             # count the volumes of non-Diluent compounds
             totVol += np.array(out)
         
@@ -343,6 +355,7 @@ class twoD(Screen):
         return '2D screen, ' + str(self.range) + str(self.compounds) + ' on plate ' + str(self.plate) + ' (' + str(
             self.workVol) + ' uL)'
 
+    # Returns a list of requested concentrations for the supplied compound, depending on the supplied dimension of preparation
     def getOutConc(self, compound, dimension):
         
         # prepared horizontally (Compound 1)
@@ -360,6 +373,8 @@ class twoD(Screen):
             return np.linspace(start=self.range[compound][0], stop=self.range[compound][1],
                                num=len(self.plate.wells())).tolist()
 
+    # Returns a dictionary by compound of lists of pipette volumes organised from the top left to the bottom right
+    # of the well plate, row by row
     def getAllVol(self):
         dict = {}
         
@@ -375,7 +390,7 @@ class twoD(Screen):
                 diluent_index = self.compounds.index(compound)
                 continue
             
-            # Volume calculations and array manipulation according to well prepartion order
+            # Volume calculations and array manipulations according to well prepartion order
             dimension = dimensions[self.compounds.index(compound)]
             outConc = self.getOutConc(compound, dimension)
             out = self.calcConcentration(compound, outConc)
@@ -389,6 +404,7 @@ class twoD(Screen):
                 outConc = np.array(outConc).reshape((len(self.plate.columns()[0]), len(self.plate.rows()[0])))
             dict[compound] = out
             
+            # verbose prints of the concentrations for this compound in the format of the well plate
             print(str(compound) + ":")
             print(outConc)
             print('\n')
@@ -412,6 +428,8 @@ class threeD(Screen):
         return '3D screen, ' + str(self.range) + str(self.compounds) + ' on plate ' + str(self.plate) + ' (' + str(
             self.workVol) + ' uL)'
 
+    # Returns a list of requested concentrations for the supplied compound, depending on the supplied dimension of preparation
+    # and the compartment number
     def getOutConc(self, compound, dimension, compartment):
         
         # prepared horizontally (Compound 1)
@@ -432,17 +450,21 @@ class threeD(Screen):
             third_dim = np.linspace(start=self.range[compound][0], stop=self.range[compound][1], num = 4).tolist()[compartment]
             return np.linspace(start=third_dim, stop=third_dim, num=int(len(self.plate.wells()) / 4))
 
+    # Returns a dictionary by compound of lists of pipette volumes organised from the top left to the bottom right
+    # of the well plate, row by row
     def getAllVol(self):
         
         # Initialise order of preparation by compound and list of calculations by compartment
         dimensions = ['h', 'v', 'a']
         compartment_calcs = []
+        outConc_calcs=[]
         
         # For every compartment, carry out a 2D screen with a fixed concentration for compound 3
         for compartment in range(4):
             
             # Initialise volume counter
             dict_comp={}
+            outConc_comp={}
             totVol = np.zeros((int(len(self.plate.columns()[0]) / 2), int(len(self.plate.rows()[0]) / 2)))
             
             # For every compound, calculate the volume to be pipetted
@@ -453,17 +475,21 @@ class threeD(Screen):
                     diluent_index = self.compounds.index(compound)
                     continue
                 
-                # Volume calculations and array manipulation according to well prepartion order
+                # Volume calculations and array manipulations according to well prepartion order
                 dimension = dimensions[self.compounds.index(compound)]
                 outConc = self.getOutConc(compound, dimension, compartment)
                 out = np.array(self.calcConcentration(compound, outConc))
                 if dimension == 'h':
                     out = np.tile(out, (int(len(self.plate.columns()[0]) / 2), 1))
+                    outConc = np.tile(np.array(outConc), (int(len(self.plate.columns()[0]) / 2), 1))
                 elif dimension == 'v':
                     out = np.tile(out, (int(len(self.plate.rows()[0]) / 2), 1)).transpose()
+                    outConc = np.tile(np.array(outConc), (int(len(self.plate.rows()[0]) / 2), 1)).transpose()
                 elif dimension == 'a':
                     out = out.reshape((int(len(self.plate.columns()[0]) / 2), int(len(self.plate.rows()[0]) / 2)))
+                    outConc = np.array(outConc).reshape((int(len(self.plate.columns()[0]) / 2), int(len(self.plate.rows()[0]) / 2)))
                 dict_comp[compound] = out
+                outConc_comp[compound] = outConc
                 
                 # Count the volumes of non-Diluent compounds
                 totVol += out
@@ -476,13 +502,24 @@ class threeD(Screen):
             
             # Collect the results for this compartment
             compartment_calcs.append(dict_comp)
+            outConc_calcs.append(outConc_comp)
             
         # Build the full list of pipetting volumes for the entire plate from the separate compartments
-        dict ={}
+        dict = {}
         for compound in self.compounds:
             full = np.block([[compartment_calcs[0][compound], compartment_calcs[1][compound]],
                              [compartment_calcs[2][compound], compartment_calcs[3][compound]]])
             dict[compound] = full.flatten().tolist()
+            
+            if isinstance(compound, Diluent):
+                continue
+            
+            # verbose prints of the concentrations for this compound in the format of the well plate
+            full_conc = np.block([[outConc_calcs[0][compound], outConc_calcs[1][compound]],
+                                  [outConc_calcs[2][compound], outConc_calcs[3][compound]]])
+            print(str(compound) + ":")
+            print(full_conc)
+            print('\n')
             
         return dict
 
@@ -521,6 +558,7 @@ class Buffer(Compound):
 
     def dilute(self, outputConc, wellVol):
         return outputConc * wellVol / self.stock
+
 
 class Diluent(Compound):
     
