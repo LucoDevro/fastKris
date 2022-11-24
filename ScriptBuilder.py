@@ -6,19 +6,21 @@ def runScriptBuilder(filename, protocolFilePath):
     with open(filename, 'r') as f:
         lines = f.read()
         lines = lines.split("\n\n")
-        f.close()
 
     tips_raw = str(lines[0].split("\n"))
     tuberack_raw = str(lines[1].split("\n"))
     instr_raw = str(lines[2].split("\n"))
     plates_raw = str(lines[3].split("\n"))
-    screens_raw = str(lines[4].split('\n')[:-1])
+    screens_raw = lines[4].split('\n')
+    if screens_raw[-1] == '':
+        screens_raw = str(screens_raw[:-1])
+    else:
+        screens_raw = str(screens_raw)
     
     # Reading compound library
     with open('compLibrary.txt', 'r') as l:
         lines = l.read()
         lines = lines.split("\n")[:-1]
-        l.close()
 
     labels = str(lines[0::3])
     types = str(lines[1::3])
@@ -28,7 +30,6 @@ def runScriptBuilder(filename, protocolFilePath):
     template = open("template.py", "r")
 
     with open(protocolFilePath, 'w') as main:
-        main.write('from opentrons import protocol_api\n\n')
         main.write('tips_raw = ' + tips_raw + "\n")
         main.write('tuberack_raw = ' + tuberack_raw + "\n")
         main.write('instr_raw = ' + instr_raw + "\n")
@@ -39,7 +40,6 @@ def runScriptBuilder(filename, protocolFilePath):
         main.write('stockConc = ' + stockConc + '\n\n')
         main.write(template.read())
         template.close()
-        main.close()
         
 # bash command-line support
 if __name__ == "__main__":
@@ -51,7 +51,6 @@ if __name__ == "__main__":
         filename = sys.argv[1]
         protocolpath = sys.argv[2]
     else:
-        raise Exception("Wrong number of arguments! Expected a file path and a protocol path.")
+        raise Exception("Wrong number of arguments! Expected a parameter file path and a protocol file path.")
         
     runScriptBuilder(filename, protocolpath)
-    
