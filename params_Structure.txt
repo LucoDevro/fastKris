@@ -36,9 +36,7 @@ Working volume (in uL)
 **STRUCTURE OF COMPLIBRARY.TXT**
 ********************************
 
-Label
-Type
-Stock concentration
+Label	Type	Stock concentration
 
-(All entries within a block are not separated (thus 1 \n character).)
-(All fields within an entry are not separated (thus 1 \n character).)
+(All fields within an entry are tab-separated.)
+(All entries are not separated (thus 1 \n character).)

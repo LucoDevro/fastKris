@@ -1,12 +1,4 @@
-NaCl (1M)
-Salt
-1
-EDTA (10%)
-Precipitant
-10
-Acetate buffer (1M)
-Buffer
-1
-MQ
-Diluent
-0
+NaCl (1M)	Salt	1
+EDTA (10%)	Precipitant	10
+Acetate buffer (1M)	Buffer	1
+MQ	Diluent	0

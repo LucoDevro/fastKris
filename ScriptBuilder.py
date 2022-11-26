@@ -1,4 +1,5 @@
 import sys
+import csv
 
 # Python function
 def runScriptBuilder(filename, protocolFilePath):
@@ -19,8 +20,8 @@ def runScriptBuilder(filename, protocolFilePath):
     
     # Reading compound library
     with open('compLibrary.txt', 'r') as l:
-        lines = l.read()
-        lines = lines.split("\n")[:-1]
+        reader = csv.reader(l, delimiter="\t")
+        lines = [entry for line in reader for entry in line]
 
     labels = str(lines[0::3])
     types = str(lines[1::3])
