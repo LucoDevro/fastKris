@@ -33,6 +33,7 @@ def run(protocol: protocol_api.ProtocolContext):
     # Every screening experiment has its own object
     for screen in screens:
         print("\nExecuting Screen " + str(screens.index(screen)+1))
+        print("Screen type: " + str(type(screen)).split("'")[1] + "\n")
         
         # Get dictionary by compound of lists of well volumes in the row-by-row preparation order
         vols = screen.getAllVol()
