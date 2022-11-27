@@ -242,7 +242,7 @@ class ControlFrame(customtkinter.CTkFrame):
         # self.image_button9 = PhotoImage(file='images/9.png')
         # self.image_button10 = PhotoImage(file='images/10.PNG')
         # self.image_button11 = PhotoImage(file='images/11.png')
-        # self.image_buttontrash = PhotoImage(file='images/trashbin.png')
+        #self.image_buttontrash = PhotoImage(file='images/wastebin.png')
 
         self.button1 = customtkinter.CTkButton(master=self.frame_panels,
                                                height=148,
@@ -378,8 +378,8 @@ class ControlFrame(customtkinter.CTkFrame):
                                                 command=lambda *args: button_event(self, 12),
                                                 state="disabled")
         # self.button12 = Label(master=self.frame_panels,
-        #                       height=148,
-        #                       width=175,
+        #                       height=147,
+        #                       width=174,
         #                       image=self.image_buttontrash,
         #                       borderwidth=0)
 
@@ -683,13 +683,13 @@ class InputFrame(customtkinter.CTkFrame):
         # self.config(width=140)
         # self.pack_propagate(0)
 
-        self.frame_up = customtkinter.CTkFrame(master=self, width=640, height=325)
+        self.frame_up = customtkinter.CTkFrame(master=self, width=650, height=472)
         self.frame_up.columnconfigure((0, 1), weight=1)
         self.frame_up.grid(row=0, column=0, sticky="nsew")
         # # here changed for well_plate
         self.frame_up.grid_propagate(False)
 
-        self.frame_compounds = customtkinter.CTkFrame(master=self.frame_up, width=640, height=228)
+        self.frame_compounds = customtkinter.CTkFrame(master=self.frame_up, width=650, height=367)
         self.frame_compounds.grid(row=3, column=0, columnspan=2, sticky="ns")
         ##here changed for well_plate size frame_right
         self.frame_compounds.grid_propagate(False)
@@ -847,17 +847,17 @@ class InputFrame(customtkinter.CTkFrame):
             self.AddSalt = customtkinter.CTkButton(master=self.frame_Compounds_input, text="Add salt",
                                                    command=lambda *args: self.addcompound("salt", True),
                                                    width=215)
-            self.AddSalt.grid(row=7, column=0, padx=5, sticky="nw")
+            self.AddSalt.grid(row=7, column=0, padx=0, sticky="nw")
             self.AddSalt.grid_propagate(False)
             self.AddBuffer = customtkinter.CTkButton(master=self.frame_Compounds_input, text="Add buffer",
                                                      command=lambda *args: self.addcompound("buffer", True),
                                                      width=215)
-            self.AddBuffer.grid(row=7, column=1, padx=5, sticky="nw")
+            self.AddBuffer.grid(row=7, column=1, padx=0, sticky="nw")
             self.AddBuffer.grid_propagate(False)
             self.AddPrecipitant = customtkinter.CTkButton(master=self.frame_Compounds_input, text="Add precipitant",
                                                           command=lambda *args: self.addcompound("precipitant", True),
                                                           width=215)
-            self.AddPrecipitant.grid(row=7, column=2, padx=5, sticky="nw")
+            self.AddPrecipitant.grid(row=7, column=2, padx=0, sticky="nw")
             self.AddPrecipitant.grid_propagate(False)
 
             if os.path.exists(completeFilename):
@@ -1000,7 +1000,7 @@ class InputFrame(customtkinter.CTkFrame):
         CompoundLabel.grid(row=0, column=1)
 
         Stock = customtkinter.CTkLabel(master=frame_comp, text="conc: ", width=50)
-        Stock.grid(row=0, column=2, padx=5)
+        Stock.grid(row=0, column=2, padx=2)
         Stock.grid_propagate(False)
 
         CompoundStock = customtkinter.CTkEntry(master=frame_comp, width=50)
@@ -1013,13 +1013,13 @@ class InputFrame(customtkinter.CTkFrame):
 
             FromRange = customtkinter.CTkEntry(master=frame_comp, width=40)
             FromRange.insert(END, fromrange)
-            FromRange.grid(row=0, column=5, padx=5)
+            FromRange.grid(row=0, column=5, padx=2)
 
             customtkinter.CTkLabel(master=frame_comp, text="-", width=1).grid(row=0, column=6, padx=2)
 
             ToRange = customtkinter.CTkEntry(master=frame_comp, width=40)
             ToRange.insert(END, torange)
-            ToRange.grid(row=0, column=7, padx=5)
+            ToRange.grid(row=0, column=7, padx=2)
 
         Unit = customtkinter.CTkOptionMenu(master=frame_comp, values=["M", "%"], width=40)
         if unit in ["%", "M"]:
