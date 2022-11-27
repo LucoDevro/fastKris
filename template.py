@@ -233,7 +233,7 @@ def setup(protocol):
             except KeyError:
                 raise Exception('Cannot find stock tube. There is nothing assigned to slot ' + rl_split[0] + '!')
             if "tuberack" not in r.name.lower():
-                raise Exception('Stocks have to be in a tuberack! There is no tuberack assigned to slot ' + rl_split[0])
+                raise Exception('Stocks have to be in a tube rack! There is no tube rack assigned to slot ' + rl_split[0])
             l = rl_split[1]
             screen_stocks.append(r[l])
 
