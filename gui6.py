@@ -11,6 +11,9 @@ import webbrowser
 import json
 import ScriptBuilder
 import easygui as e
+import csv
+import numpy as np
+import xlsxwriter
 from tkinter.scrolledtext import ScrolledText
 
 customtkinter.set_appearance_mode("Dark")  # Modes: "Light" (standard), "Dark"
@@ -19,7 +22,7 @@ customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "gre
 
 class App(customtkinter.CTk):
     WIDTH = 1080
-    HEIGHT = 520
+    HEIGHT = 530
 
     def __init__(self):
         super().__init__()
@@ -76,8 +79,6 @@ class ControlFrame(customtkinter.CTkFrame):
         self.frame_left.grid_rowconfigure(10, weight=1)  # empty row as spacing
         self.frame_left.grid_rowconfigure(15, minsize=20)  # empty row with minsize as spacing
         self.frame_left.grid_rowconfigure(20, minsize=10)  # empty row with minsize as spacing
-        # self.frame_left.grid_columnconfigure(0, weight=1)
-        # self.frame_left.grid_columnconfigure(1, weight=1)
 
         # Title: Protocol metadata
         self.label_1 = customtkinter.CTkLabel(master=self.frame_left,
@@ -102,38 +103,30 @@ class ControlFrame(customtkinter.CTkFrame):
         self.author.grid(row=3, column=1, pady=1, padx=5, sticky="ew")
 
         # ApiLevel fill-in
-        self.label_4 = customtkinter.CTkLabel(master=self.frame_left,
-                                              text="ApiLevel:")
-        self.label_4.grid(row=4, column=0, pady=1, padx=0)
+        #self.label_4 = customtkinter.CTkLabel(master=self.frame_left,
+        #                                      text="ApiLevel:")
+        #self.label_4.grid(row=4, column=0, pady=1, padx=0)
 
-        self.apilevel = customtkinter.CTkEntry(master=self.frame_left)
-        self.apilevel.grid(row=4, column=1, columnspan=2, pady=1, padx=5, sticky="ew")
+        #self.apilevel = customtkinter.CTkEntry(master=self.frame_left)
+        #self.apilevel.grid(row=4, column=1, columnspan=2, pady=1, padx=5, sticky="ew")
 
         # Date fill-in
-        self.label_5 = customtkinter.CTkLabel(master=self.frame_left,
-                                              text="Date:")
-        self.label_5.grid(row=5, column=0, pady=1, padx=0)
+        #self.label_5 = customtkinter.CTkLabel(master=self.frame_left,
+        #                                      text="Date:")
+        #self.label_5.grid(row=5, column=0, pady=1, padx=0)
 
-        self.date = customtkinter.CTkEntry(master=self.frame_left)
-        self.date.grid(row=5, column=1, pady=1, padx=5, sticky="ew")
+        #self.date = customtkinter.CTkEntry(master=self.frame_left)
+        #self.date.grid(row=5, column=1, pady=1, padx=5, sticky="ew")
 
         # Description fill-in
-        self.label_6 = customtkinter.CTkLabel(master=self.frame_left,
-                                              text="Description:")
-        self.label_6.grid(row=6, column=0, pady=1, padx=0, sticky="ew")
+        self.label_6 = customtkinter.CTkLabel(master=self.frame_left,text="Description:")
+        self.label_6.grid(row=4, column=0, pady=1, padx=0, sticky="ew")
 
         self.description = customtkinter.CTkEntry(master=self.frame_left, width=400, height=100)
-        self.description.grid(row=7, column=0, columnspan=2, pady=0, padx=10, sticky="ns")
+        self.description.grid(row=5, column=0, columnspan=2, pady=0, padx=10, sticky="ns")
 
         # self.description = tkinter.Text(master=self.frame_left, height=4, width=40, font="Arial", bd=1)
         # self.description.grid(row=7, column=0, columnspan=2, pady=0, padx=10, sticky="ns")
-
-        # # Create CTk scrollbar
-        # self.scrollbar = customtkinter.CTkScrollbar(master=self.frame_left, command=self.description.yview)
-        # self.scrollbar.grid(row=7, column=1, sticky="ns")
-        #
-        # # Connect textbox scroll event to CTk scrollbar
-        # self.description.configure(yscrollcommand=self.scrollbar.set)
 
         # Title: Pipets
         self.label_1 = customtkinter.CTkLabel(master=self.frame_left,
@@ -141,17 +134,7 @@ class ControlFrame(customtkinter.CTkFrame):
                                               text_font=("Roboto Medium", -16))  # font name and size in px
         self.label_1.grid(row=11, column=0, columnspan=2, pady=10, padx=10)
 
-        # Pipets
-
-        # def __init__(self, parent):
-        #    super().__init__(parent)
-        #    self.parent = parent
         self.hasTwoPipets = False
-        # self.grid_rowconfigure(, weight=1)
-        # self.grid_columnconfigure(1, weight=1)
-
-        # self.grid(row=0, column=0, sticky="nsew")
-
         self.selected_value = customtkinter.StringVar()
 
         # setup for if two pipets available: force on left then other right (not implemented yet)
@@ -183,24 +166,21 @@ class ControlFrame(customtkinter.CTkFrame):
                                                           variable=self.selected_side_pipet,
                                                           width=80)
         self.optionmenu_pip.grid(row=0, column=2, padx=10, sticky="nsew")
-        #     self.optionmenu_pip.grid_propagate(False)
         #
-        self.AddPipetButton = customtkinter.CTkButton(master=self.frame_pipet, text="Add...",
-                                                      command=self.addPipet, width=30)
+        self.AddPipetButton = customtkinter.CTkButton(master=self.frame_pipet, text="Add... ",
+                                                      command=self.addPipet, width=54)
         self.AddPipetButton.grid(row=0, column=4)
+        self.AddPipetButton.grid_propagate(False)
 
-        #     pipetsFileName = os.path.join(self.parent.inputsPath, "pipets.txt")
-        #     if os.path.exists(pipetsFileName):
-        #         with open(pipetsFileName, "r") as f:
-        #             lines = f.readlines()
-        #             self.AddPipet.insert(END, lines[0].replace("\n", ""))
-        #             self.optionmenu_pip.set(lines[1].replace("\n", ""))
-        #             if len(lines) == 4:
-        #                 self.addPipet(lines[2].replace("\n", ""), lines[3].replace("\n", ""))
-        #
-        #
-        # self.frame_pipet_Apply = customtkinter.CTkFrame(master=self.frame_pipet)
-        # self.frame_pipet_Apply.grid(row=2, column=0, columnspan=4, sticky="nsew")
+        pipetsFileName = os.path.join(self.parent.inputsPath, "pipets.txt")
+        if os.path.exists(pipetsFileName):
+            with open(pipetsFileName, "r") as f:
+                lines = f.readlines()
+                self.AddPipet.insert(END, lines[0].replace("\n", ""))
+                self.optionmenu_pip.set(lines[1].replace("\n", ""))
+                if len(lines) == 4:
+                    self.addPipet(lines[2].replace("\n", ""), lines[3].replace("\n", ""))
+
 
         self.ApplyButton = customtkinter.CTkButton(master=self.frame_pipet, text="Apply", command=self.pipetApply,
                                                    width=100)
@@ -377,59 +357,6 @@ class ControlFrame(customtkinter.CTkFrame):
                                                 corner_radius=10,
                                                 command=lambda *args: button_event(self, 12),
                                                 state="disabled")
-        # self.button12 = Label(master=self.frame_panels,
-        #                       height=147,
-        #                       width=174,
-        #                       image=self.image_buttontrash,
-        #                       borderwidth=0)
-
-        # self.button1 = Button(master=self.frame_panels,
-        #                       image=self.image_button1,
-        #                       command=lambda *args: button_event(self, 2),
-        #                       borderwidth=0)
-        # self.button2 = Button(master=self.frame_panels,
-        #                       image=self.image_button2,
-        #                       command=lambda *args: button_event(self, 2),
-        #                       borderwidth=0)
-        # self.button3 = Button(master=self.frame_panels,
-        #                       image=self.image_button3,
-        #                       command=lambda *args: button_event(self, 3),
-        #                       borderwidth=0)
-        # self.button4 = Button(master=self.frame_panels,
-        #                       image=self.image_button4,
-        #                       command=lambda *args: button_event(self, 4),
-        #                       borderwidth=0)
-        # self.button5 = Button(master=self.frame_panels,
-        #                       image=self.image_button5,
-        #                       command=lambda *args: button_event(self, 5),
-        #                       borderwidth=0)
-        # self.button6 = Button(master=self.frame_panels,
-        #                       image=self.image_button6,
-        #                       command=lambda *args: button_event(self, 6),
-        #                       borderwidth=0)
-        # self.button7 = Button(master=self.frame_panels,
-        #                       image=self.image_button7,
-        #                       command=lambda *args: button_event(self, 7),
-        #                       borderwidth=0)
-        # self.button8 = Button(master=self.frame_panels,
-        #                       image=self.image_button8,
-        #                       command=lambda *args: button_event(self, 8),
-        #                       borderwidth=0)
-        # self.button9 = Button(master=self.frame_panels,
-        #                       image=self.image_button9,
-        #                       command=lambda *args: button_event(self, 9),
-        #                       borderwidth=0)
-        # self.button10 = Button(master=self.frame_panels,
-        #                        image=self.image_button10,
-        #                        command=lambda *args: button_event(self, 10),
-        #                        borderwidth=0)
-        # self.button11 = Button(master=self.frame_panels,
-        #                        image=self.image_button11,
-        #                        command=lambda *args: button_event(self, 11),
-        #                        borderwidth=0)
-        # self.button12 = Label(master=self.frame_panels,
-        #                       image=self.image_buttontrash,
-        #                       borderwidth=0)
 
         self.button1.grid(row=3, column=0, pady=2, padx=2, sticky="nesw")
         self.button2.grid(row=3, column=1, pady=2, padx=2, sticky="nesw")
@@ -451,7 +378,7 @@ class ControlFrame(customtkinter.CTkFrame):
             self.frame_right.tkraise()
 
         self.button13 = customtkinter.CTkButton(master=self.frame_right,
-                                                text="Generate Protocol from parameter file",
+                                                text="Load from parameter file",
                                                 border_width=2,  # <- custom border_width
                                                 fg_color=None,  # <- no fg_color
                                                 command=self.simulate_protocol)
@@ -475,8 +402,9 @@ class ControlFrame(customtkinter.CTkFrame):
         self.optionmenu_pip2.grid(row=2, column=2, padx=10, sticky="nsew")
 
         self.RemovePipetButton = customtkinter.CTkButton(master=self.frame_pipet,
-                                                         text="remove", width=20, command=self.removePipet)
+                                                         text="remove", width=54, command=self.removePipet)
         self.RemovePipetButton.grid(row=2, column=4)
+        self.RemovePipetButton.grid_propagate(False)
 
         self.AddPipetButton.grid_remove()
         self.hasTwoPipets = True
@@ -487,6 +415,7 @@ class ControlFrame(customtkinter.CTkFrame):
             l.destroy()
         self.AddPipetButton.grid()
         self.hasTwoPipets = False
+
 
     def pipetApply(self):
         if self.AddPipet.get() != "":
@@ -517,6 +446,7 @@ class ControlFrame(customtkinter.CTkFrame):
 
     ##CHANGED NOW
     def generate_protocol(self):
+
         names_conc_to_add = []
         conc_to_add = []
         labels_to_add = []
@@ -528,9 +458,8 @@ class ControlFrame(customtkinter.CTkFrame):
 
             # read in compound library:
             with open('compLibrary.txt', 'r') as l:
-                lines = l.read()
-                lines = lines.split("\n")[:-1]
-                l.close()
+                reader = csv.reader(l, delimiter="\t")
+                lines = [entry for line in reader for entry in line]
             labels = str(lines[0::3])[1:-1]
             types = str(lines[1::3])[1:-1]
 
@@ -547,8 +476,8 @@ class ControlFrame(customtkinter.CTkFrame):
 
                 if os.path.isfile(f):
                     with open(f, "r") as f:
-                        type = f.readline().replace("\n", "")
-                        if type == "Tube rack":
+                        Type = f.readline().replace("\n", "")
+                        if Type == "Tube rack":
                             dictTur = json.loads(f.read())
                             for key in dictTur:
                                 if dictTur.get(key) != "":
@@ -557,7 +486,7 @@ class ControlFrame(customtkinter.CTkFrame):
                                     e.msgbox("Empty string value for name plate: " + filename, "Error")
                                     return None
 
-                        elif type == "Tip rack":
+                        elif Type == "Tip rack":
                             dictTir = json.loads(f.read())
                             for key in dictTir.keys():
                                 if dictTir.get(key) != "":
@@ -566,7 +495,7 @@ class ControlFrame(customtkinter.CTkFrame):
                                     e.msgbox("Empty string value for name plate: " + filename, "Error")
                                     return None
 
-                        elif type == "Well plate":
+                        elif Type == "Well plate":
                             dict = json.loads(f.readline())
                             plates += dict["label"] + "\n" + str(dict["index"]) + "\n"
                             if dict["label"] == "":
@@ -607,7 +536,6 @@ class ControlFrame(customtkinter.CTkFrame):
 
                             # check if all compounds are already present in the library. Should salt and diluent be present ??
                             names_conc = dict["names_conc"].split(",")[:-1]
-                            names = [i.split(" (")[0] for i in names_conc]
                             labels_compounds = dict["labels_compounds"].split(",")
                             concs = []
                             for i in names_conc:
@@ -624,6 +552,27 @@ class ControlFrame(customtkinter.CTkFrame):
                                         labels_to_add.append(labels_compounds[idx])
                                         conc_to_add.append(concs[idx])
 
+                            #create a matrix
+                            #TODO: also for 3D
+                            if str(dict["dimension"]) == 1 or str(dict["dimension"] == 2):
+                                try:
+                                    numberOfWells = int(re.search(r'([0-9]+)',dict["label"]).group(1))
+                                    ranges = dict["ranges"].split(",")
+                                    workbook = xlsxwriter.Workbook(os.path.join(self.parent.UserPath,protocolFilename.replace(".py",".xlsx")))
+                                    worksheet = workbook.add_worksheet()
+                                    headers = ["Name"] + [*range(1,numberOfWells+1)]
+                                    #worksheet.write(row, col, item)
+                                    for i in range(len(headers)):
+                                        worksheet.write(0,i,headers[i])
+                                    for i in range(len(names_conc)):
+                                        raw_range = [float(j) for j in ranges[i].split('-')]
+                                        RowToAdd = [names_conc[i]] + list(map(str,np.linspace(raw_range[0],raw_range[1],numberOfWells).tolist()))
+                                        for k in range(len(RowToAdd)):
+                                            worksheet.write(i+1,k,RowToAdd[k])
+                                    workbook.close()
+                                except AttributeError:
+                                    continue
+
             if len(names_conc_to_add) > 0:
                 answer = messagebox.askquestion(
                     message="Are you sure you want to continue and add following compounds to the library?\n" +
@@ -633,9 +582,9 @@ class ControlFrame(customtkinter.CTkFrame):
                 if answer == "yes":
                     with open("compLibrary.txt", "a") as f:
                         for idx in range(len(names_conc_to_add)):
-                            f.write(names_conc_to_add[idx] + "\n")
-                            f.write(labels_to_add[idx].capitalize() + "\n")
-                            f.write(conc_to_add[idx] + "\n")
+                            f.write("\n" + names_conc_to_add[idx] + "\t")
+                            f.write(labels_to_add[idx].capitalize() + "\t")
+                            f.write(conc_to_add[idx])
                     # Is this still necessary? TODO
                     # self.AddedToLibrary(names_conc_to_add, conc_to_add, labels_to_add)
 
@@ -647,8 +596,8 @@ class ControlFrame(customtkinter.CTkFrame):
                 e.msgbox("no prior information of pipet(s) saved. Specify name and position.", "Error")
                 return None
 
-            # The name of the parameterfile will be: projectname (gotten from first window) .param.txt
-            paramFilename = os.path.basename(self.parent.UserPath) + ".param.txt"
+            # The name of the parameterfile will be: protocol filename.param.txt
+            paramFilename = protocolFilename.replace(".py",".param.txt")
             paramFilePath = os.path.join(self.parent.UserPath, paramFilename)
             # print("path", paramFilePath)
             with open(paramFilePath, "w+") as f:
@@ -660,14 +609,107 @@ class ControlFrame(customtkinter.CTkFrame):
 
             # generate the protocol
             ##leave for now, but change once added to left frame
-            ScriptBuilder.runScriptBuilder(paramFilePath, os.path.join(self.parent.UserPath, protocolFilename))
+            ScriptBuilder.BuildWithMetadata(paramFilePath, os.path.join(self.parent.UserPath, protocolFilename),
+                                            self.name.get(),self.description.get(),self.author.get())
 
     def simulate_protocol(self):
-        parampath = askopenfilename()
-        protocolFilename = simpledialog.askstring("Protocol filename", "filename for new protocol\t\t\t") + ".py"
-        # so you can give a paramfile in another  directory, but the protcolfile will be written to current project
-        ScriptBuilder.runSriptBuilder(parampath, os.path.join(self.parent.UserPath, protocolFilename))
+        try:
+            parampath = askopenfilename()
+            with open(parampath, 'r') as f:
+                lines = f.read()
+                lines = lines.split("\n\n")
 
+            tips_raw = lines[0].split("\n")
+            tuberack_raw = lines[1].split("\n")
+            instr_raw = lines[2].split("\n")
+            plates_raw = lines[3].split("\n")
+            screens_raw = lines[4].split('\n')
+            if screens_raw[-1] == '':
+                screens_raw = screens_raw[:-1]
+            else:
+                screens_raw = screens_raw
+
+            tipsInput = tips_raw[0::3]
+            tipsLocation = tips_raw[1::3]
+            tipsPipette = tips_raw[2::3]
+
+            for i in range(len(tipsLocation)):
+                filename = "Input_plate" + str(tipsLocation[i]) + ".txt"
+                filePath = os.path.join(self.parent.inputsPath, filename)
+                with open(filePath, "w") as f:
+                    f.write("Tip rack" + "\n")
+                    dict = {"label": tipsInput[i], "index": str(tipsLocation[i]),
+                            "AssignedPipetOption": tipsPipette[i]}
+                    f.write(json.dumps(dict))
+
+            tuberacksInput = tuberack_raw[0::2]
+            tuberacksLocation = tuberack_raw[1::2]
+
+            for i in range(len(tuberacksLocation)):
+                filename = "Input_plate" + str(tuberacksLocation[i]) + ".txt"
+                filePath = os.path.join(self.parent.inputsPath, filename)
+                with open(filePath, "w") as f:
+                    f.write("Tube rack" + "\n")
+                    dict = {"label": tuberacksInput[i], "index": str(tuberacksLocation[i])}
+                    f.write(json.dumps(dict))
+
+            instrumentInput = instr_raw[0::2]
+            instrumentLocation = instr_raw[1::2]
+            filename = "pipets.txt"
+            filePath = os.path.join(self.parent.inputsPath, filename)
+            with open(filePath, "w") as f:
+                for i in range(len(instrumentInput)):
+                    f.write(instrumentInput[i] + "\n")
+                    f.write(instrumentLocation[i] + "\n")
+
+            self.AddPipet.delete(0, END)
+            self.AddPipet.insert(END, instrumentInput[0])
+            self.optionmenu_pip.set(instrumentLocation[0])
+            if len(instrumentInput) == 2:
+                self.addPipet(instrumentInput[1], instrumentLocation[1])
+
+            platesInput = plates_raw[0::2]
+            platesLocation = plates_raw[1::2]
+            all_screen_types = screens_raw[0::6]
+            all_screen_compounds = screens_raw[1::6]
+            list_screen_compounds = all_screen_compounds[1].split(",")
+            all_screen_stocks = screens_raw[2::6]
+            all_screen_ranges = screens_raw[3::6]
+            all_screen_plates = screens_raw[4::6]
+            all_screen_workVol = screens_raw[5::6]
+
+            with open('compLibrary.txt', 'r') as l:
+                reader = csv.reader(l, delimiter="\t")
+                lines = [entry for line in reader for entry in line]
+
+            labels = lines[0::3]
+            types = lines[1::3]
+
+            label_compounds = []
+            for i in range(len(list_screen_compounds)):
+                comp = list_screen_compounds[i]
+                compIdx = labels.index(comp)
+                if compIdx != None:
+                    label_compounds.append(types[compIdx])
+                else:
+                    e.msgbox("Unknown compound " + comp + " in parameter file", "Error")
+                    return None
+
+            for i in range(len(platesLocation)):
+                filename = "Input_plate" + str(platesLocation[i]) + ".txt"
+                filePath = os.path.join(self.parent.inputsPath, filename)
+
+                with open(filePath, "w") as f:
+                    f.write("Well plate" + "\n")
+                    dict = {"label": platesInput[i], "index": platesLocation[i], "dimension": str(all_screen_types[i]),
+                            "names_conc": all_screen_compounds[i], "positions": all_screen_stocks[i],
+                            "ranges": all_screen_ranges[i],
+                            "WorkingVolume": all_screen_workVol[i], "Tuberack": all_screen_stocks[i][0],
+                            "labels_compounds": ",".join(label_compounds[:-1])}
+                    f.write(json.dumps(dict))
+        except Exception as err:
+            e.msgbox("Something went wrong during loading of the parameter file. Make sure the file follows the correct format exactly, including newline characters.", "Error")
+            return None
 
 class InputFrame(customtkinter.CTkFrame):
     def __init__(self, parent, index):
