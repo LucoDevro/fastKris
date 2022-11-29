@@ -460,8 +460,11 @@ class ControlFrame(customtkinter.CTkFrame):
             with open('compLibrary.txt', 'r') as l:
                 reader = csv.reader(l, delimiter="\t")
                 lines = [entry for line in reader for entry in line]
+
             labels = str(lines[0::3])[1:-1]
             types = str(lines[1::3])[1:-1]
+            #print(labels)
+            #print(types)
 
             # read all information in
             directory = os.path.join(self.parent.inputsPath)
@@ -534,7 +537,7 @@ class ControlFrame(customtkinter.CTkFrame):
                                          "Error")
                                 return None
 
-                            # check if all compounds are already present in the library. Should salt and diluent be present ??
+                            # check if all compounds are already present in the library.
                             names_conc = dict["names_conc"].split(",")[:-1]
                             labels_compounds = dict["labels_compounds"].split(",")
                             concs = []
@@ -585,8 +588,6 @@ class ControlFrame(customtkinter.CTkFrame):
                             f.write("\n" + names_conc_to_add[idx] + "\t")
                             f.write(labels_to_add[idx].capitalize() + "\t")
                             f.write(conc_to_add[idx])
-                    # Is this still necessary? TODO
-                    # self.AddedToLibrary(names_conc_to_add, conc_to_add, labels_to_add)
 
             FilenamePipets = os.path.join(self.parent.inputsPath, "pipets.txt")
             if os.path.isfile(FilenamePipets):
@@ -672,7 +673,6 @@ class ControlFrame(customtkinter.CTkFrame):
             platesLocation = plates_raw[1::2]
             all_screen_types = screens_raw[0::6]
             all_screen_compounds = screens_raw[1::6]
-            list_screen_compounds = all_screen_compounds[1].split(",")
             all_screen_stocks = screens_raw[2::6]
             all_screen_ranges = screens_raw[3::6]
             all_screen_plates = screens_raw[4::6]
@@ -684,16 +684,19 @@ class ControlFrame(customtkinter.CTkFrame):
 
             labels = lines[0::3]
             types = lines[1::3]
-
             label_compounds = []
-            for i in range(len(list_screen_compounds)):
-                comp = list_screen_compounds[i]
-                compIdx = labels.index(comp)
-                if compIdx != None:
-                    label_compounds.append(types[compIdx])
-                else:
-                    e.msgbox("Unknown compound " + comp + " in parameter file", "Error")
-                    return None
+            for i in range(len(all_screen_plates)):
+                list_screen_compounds = all_screen_compounds[i].split(",")
+                labels_i = []
+                for j in range(len(list_screen_compounds)):
+                    comp = list_screen_compounds[j]
+                    compIdx = labels.index(comp)
+                    if compIdx != None:
+                        labels_i.append(types[compIdx])
+                    else:
+                        e.msgbox("Unknown compound " + comp + " in parameter file", "Error")
+                        return None
+                label_compounds.append(labels_i)
 
             for i in range(len(platesLocation)):
                 filename = "Input_plate" + str(platesLocation[i]) + ".txt"
@@ -705,9 +708,11 @@ class ControlFrame(customtkinter.CTkFrame):
                             "names_conc": all_screen_compounds[i], "positions": all_screen_stocks[i],
                             "ranges": all_screen_ranges[i],
                             "WorkingVolume": all_screen_workVol[i], "Tuberack": all_screen_stocks[i][0],
-                            "labels_compounds": ",".join(label_compounds[:-1])}
+                            "labels_compounds": ",".join(label_compounds[i][:-1])}
                     f.write(json.dumps(dict))
+                    
         except Exception as err:
+            e.msgbox(err,"Error")
             e.msgbox("Something went wrong during loading of the parameter file. Make sure the file follows the correct format exactly, including newline characters.", "Error")
             return None
 
