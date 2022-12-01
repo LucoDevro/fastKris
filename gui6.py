@@ -479,10 +479,10 @@ class ControlFrame(customtkinter.CTkFrame):
             instruments = ""
             plates = ""
             screens = ""
+            atLeastOneInput = 0
             for filename in os.listdir(directory):
                 f = os.path.join(directory, filename)
                 # checking if it is a file
-                atLeastOneInput = 0
                 if os.path.isfile(f):
                     with open(f, "r") as f:
                         Type = f.readline().replace("\n", "")
