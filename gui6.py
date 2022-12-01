@@ -1,3 +1,4 @@
+#!usr/bin/env python
 from tkinter import *
 import customtkinter
 from tkinter.font import BOLD
@@ -418,6 +419,10 @@ class ControlFrame(customtkinter.CTkFrame):
 
 
     def pipetApply(self):
+        isExist = os.path.exists(self.parent.inputsPath)
+        if not isExist:
+            os.makedirs(self.parent.inputsPath)
+
         if self.AddPipet.get() != "":
             instruments = self.AddPipet.get() + "\n" + self.optionmenu_pip.get() + "\n"
             with open(os.path.join(self.parent.inputsPath, "pipets.txt"), "w") as f:
@@ -434,9 +439,6 @@ class ControlFrame(customtkinter.CTkFrame):
                 e.msgbox("Second pipet not specified", "Error")
                 return None
 
-    def button_event(self):
-        print("Button pressed")
-
     def change_appearance_mode(self):
         switch = self.switch_darkmode.get()
         if switch == "on":
@@ -446,6 +448,10 @@ class ControlFrame(customtkinter.CTkFrame):
 
     ##CHANGED NOW
     def generate_protocol(self):
+        isExist = os.path.exists(self.parent.inputsPath)
+        if not isExist:
+            os.makedirs(self.parent.inputsPath)
+            return None
 
         names_conc_to_add = []
         conc_to_add = []
@@ -476,11 +482,12 @@ class ControlFrame(customtkinter.CTkFrame):
             for filename in os.listdir(directory):
                 f = os.path.join(directory, filename)
                 # checking if it is a file
-
+                atLeastOneInput = 0
                 if os.path.isfile(f):
                     with open(f, "r") as f:
                         Type = f.readline().replace("\n", "")
                         if Type == "Tube rack":
+                            atLeastOneInput += 1
                             dictTur = json.loads(f.read())
                             for key in dictTur:
                                 if dictTur.get(key) != "":
@@ -490,6 +497,7 @@ class ControlFrame(customtkinter.CTkFrame):
                                     return None
 
                         elif Type == "Tip rack":
+                            atLeastOneInput += 1
                             dictTir = json.loads(f.read())
                             for key in dictTir.keys():
                                 if dictTir.get(key) != "":
@@ -499,6 +507,7 @@ class ControlFrame(customtkinter.CTkFrame):
                                     return None
 
                         elif Type == "Well plate":
+                            atLeastOneInput += 1
                             dict = json.loads(f.readline())
                             plates += dict["label"] + "\n" + str(dict["index"]) + "\n"
                             if dict["label"] == "":
@@ -542,7 +551,11 @@ class ControlFrame(customtkinter.CTkFrame):
                             labels_compounds = dict["labels_compounds"].split(",")
                             concs = []
                             for i in names_conc:
-                                concs.append(re.search(r"([0-9]+)", i.split(" (")[1]).group(1))
+                                try:
+                                    concs.append(re.search(r"([0-9]+)", i.split(" (")[1]).group(1))
+                                except AttributeError:
+                                    e.msgbox("Unrecognized or empty value for one of the concentrations in: " + filename, "Error")
+                                    return None
 
                             zipLabelType = list(map(lambda x, y: (x.replace("\'", ""), y.replace("\'", "")),
                                                     labels.split(", "), types.split(", ")))
@@ -551,6 +564,10 @@ class ControlFrame(customtkinter.CTkFrame):
                             if any(x not in zipLabelType for x in zipInput):
                                 for idx in range(len(zipInput)):
                                     if (zipInput[idx] not in zipLabelType):
+                                        if zipInput[idx][0] in list(map(lambda x: x.replace("\'",""),labels.split(", "))):
+                                            e.msgbox(filename + "\n" + str(zipInput[idx][0]) + ": A compound with the same label, but different type is already present in the library."
+                                                     ,"Error")
+                                            return None
                                         names_conc_to_add.append(names_conc[idx])
                                         labels_to_add.append(labels_compounds[idx])
                                         conc_to_add.append(concs[idx])
@@ -575,6 +592,10 @@ class ControlFrame(customtkinter.CTkFrame):
                                     workbook.close()
                                 except AttributeError:
                                     continue
+
+                if atLeastOneInput == 0:
+                    e.msgbox("No input files with slot information found. Specify input for at least one slot", "Error")
+                    return None
 
             if len(names_conc_to_add) > 0:
                 answer = messagebox.askquestion(
@@ -610,11 +631,16 @@ class ControlFrame(customtkinter.CTkFrame):
 
             # generate the protocol
             ##leave for now, but change once added to left frame
+            #
             ScriptBuilder.BuildWithMetadata(paramFilePath, os.path.join(self.parent.UserPath, protocolFilename),
                                             self.name.get(),self.description.get(),self.author.get())
 
     def simulate_protocol(self):
         try:
+            isExist = os.path.exists(self.parent.inputsPath)
+            if not isExist:
+                os.makedirs(self.parent.inputsPath)
+
             parampath = askopenfilename()
             with open(parampath, 'r') as f:
                 lines = f.read()
@@ -710,10 +736,9 @@ class ControlFrame(customtkinter.CTkFrame):
                             "WorkingVolume": all_screen_workVol[i], "Tuberack": all_screen_stocks[i][0],
                             "labels_compounds": ",".join(label_compounds[i][:-1])}
                     f.write(json.dumps(dict))
-                    
+
         except Exception as err:
-            e.msgbox(err,"Error")
-            e.msgbox("Something went wrong during loading of the parameter file. Make sure the file follows the correct format exactly, including newline characters.", "Error")
+            e.msgbox("Something went wrong during loading of the parameter file. Make sure the file follows the correct format exactly, including newline characters.\n" + str(err),"Error")
             return None
 
 class InputFrame(customtkinter.CTkFrame):
