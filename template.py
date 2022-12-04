@@ -104,12 +104,12 @@ def run(protocol: protocol_api.ProtocolContext):
                 # Only when adding the last compound, put the tip in the liquid, mix and drop the tip
                 if last:
                     instrument.well_bottom_clearance.aspirate = max(stock_vol / stock.max_volume * stock.depth - 40, 1)
-                    instrument.well_bottom_clearance.dispense = well.depth / 2
+                    instrument.well_bottom_clearance.dispense = 3
                     instrument.transfer(vol, stock, well, new_tip = "never")
-                    instrument.mix(repetitions = 3, volume = instrument.max_volume / 2)
-                    instrument.drop_tip()
                     instrument.well_bottom_clearance.aspirate = 1
                     instrument.well_bottom_clearance.dispense = 1
+                    instrument.mix(repetitions = 3, volume = instrument.max_volume / 2)
+                    instrument.drop_tip()
                 else:
                     # Transfer the volume and blow out, but avoid putting the tip into the liquid to reuse it for the other wells
                     # Adapt the instrument's aspiration well bottom clearance depending on the available stock volume. 
@@ -422,7 +422,8 @@ class twoD(Screen):
         return dict
  
     
-# This 3D screen class only supports four compartments to vary Compound 3
+# This 3D screen class only supports four compartments to vary Compound 3.
+# Any well plate with both the number of rows and columns divisible by 2 will do
 class threeD(Screen):
 
     def __str__(self):
@@ -530,8 +531,8 @@ class threeD(Screen):
 class Compound:
 
     def __init__(self, stock, label):
-        self.stock = stock
-        self.label = label
+        self.stock = stock # stock concentration; Float
+        self.label = label # compound label; String
 
 
 class Salt(Compound):
@@ -539,6 +540,7 @@ class Salt(Compound):
     def __str__(self):
         return self.label + ' (Salt)'
 
+    # Returns volume (in uL) to take from the stock solution to obtain the output concentration in the well
     def dilute(self, outputConc, wellVol):
         return outputConc * wellVol / self.stock
 
