@@ -1,4 +1,4 @@
-#!usr/bin/env python
+#!/usr/bin/env python
 from tkinter import *
 import customtkinter
 from tkinter.font import BOLD
