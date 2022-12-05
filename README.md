@@ -61,7 +61,7 @@ FastKris requires compounds to be registered in its compound library. This is a 
 It is recommended to save your compound library as a spreadsheet and to export it to a tab-separated file (usually the `*.txt` or `*.tsv` "Save as" option).
 ### Define your experiment and generate a protocol script.
 #### GUI method
-Start the GUI by double-clicking, choose your working directory and fill in your experiment definitions (see the user's guide). Click the `Generate protocol` button and give a name to your experiment. This generates the following files:
+Start the GUI by double-clicking it, choose your working directory and fill in your experiment definitions (see the user's guide). Click the `Generate protocol` button and give a name to your experiment. This generates the following files:
 
 - A parameter text file defining your experiment: `<experiment-name>.param.txt`. This allows to reload previously defined experiments using the `Load from parameter file` button.
 - A spreadsheet with the compound concentrations for each well: `<experiment-name>.xlsx`.
