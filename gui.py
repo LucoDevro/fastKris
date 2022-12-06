@@ -10,13 +10,15 @@ import os
 import re
 import webbrowser
 import json
+from PIL import Image
+import easygui
 import ScriptBuilder
 import easygui as e
 import csv
 import numpy as np
 import xlsxwriter
 
-customtkinter.set_appearance_mode("Dark")  # Modes: "Light" (standard), "Dark"
+customtkinter.set_appearance_mode("Dark")  # Modes: "Dark" (standard), "Light"
 customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
 
 """class App is an extension of a toplevel CTk widget with an associated folder in the file system"""
@@ -89,36 +91,36 @@ class ControlFrame(customtkinter.CTkFrame):
         # Title: Protocol metadata
         self.label_1 = customtkinter.CTkLabel(master=self.frame_left,
                                               text="Protocol metadata",
-                                              text_font=("Roboto Medium", -20))  # font name and size in px
+                                              font=("Roboto Medium", -20))  # font name and size in px
         self.label_1.grid(row=1, column=0, columnspan=2, pady=10, padx=10)
 
         # Name protocol fill-in
         self.label_2 = customtkinter.CTkLabel(master=self.frame_left,
                                               text="Name protocol:")
-        self.label_2.grid(row=2, column=0, pady=1, padx=0)
+        self.label_2.grid(row=2, column=0, pady=5, padx=0)
 
         self.name = customtkinter.CTkEntry(master=self.frame_left)
-        self.name.grid(row=2, column=1, pady=1, padx=5, sticky="ew")
+        self.name.grid(row=2, column=1, pady=5, padx=5, sticky="ew")
 
         # Author fill-in
         self.label_3 = customtkinter.CTkLabel(master=self.frame_left,
                                               text="Author:")
-        self.label_3.grid(row=3, column=0, pady=1, padx=0)
+        self.label_3.grid(row=3, column=0, pady=5, padx=0)
 
         self.author = customtkinter.CTkEntry(master=self.frame_left)
-        self.author.grid(row=3, column=1, pady=1, padx=5, sticky="ew")
+        self.author.grid(row=3, column=1, pady=5, padx=5, sticky="ew")
 
         # Description fill-in
         self.label_6 = customtkinter.CTkLabel(master=self.frame_left, text="Description:")
         self.label_6.grid(row=4, column=0, pady=1, padx=0, sticky="ew")
 
-        self.description = customtkinter.CTkEntry(master=self.frame_left, width=400, height=100)
+        self.description = customtkinter.CTkTextbox(master=self.frame_left, width=400, height=150, border_width=2)
         self.description.grid(row=5, column=0, columnspan=2, pady=0, padx=10, sticky="ns")
 
         # Title: Pipets
         self.label_1 = customtkinter.CTkLabel(master=self.frame_left,
                                               text="Pipets",
-                                              text_font=("Roboto Medium", -16))  # font name and size in px
+                                              font=("Roboto Medium", -16))  # font name and size in px
         self.label_1.grid(row=11, column=0, columnspan=2, pady=10, padx=10)
 
         # initialize the hasTwoPipets attribute. True indicates that two input rows are present in the "Pipets" section
@@ -171,20 +173,24 @@ class ControlFrame(customtkinter.CTkFrame):
                                                        command=self.change_appearance_mode, variable=switch_var,
                                                        onvalue="on", offvalue="off")
         self.switch_darkmode.grid(row=20, column=0, columnspan=2, pady=10, padx=20, sticky="")
+        self.switch_darkmode.select()
 
         # ============ frame_right ============
 
-        # configure grid layout (3x7)
+        # configure grid layout (7x3)
         self.frame_right.rowconfigure((0, 1, 2, 3), weight=1)
         self.frame_right.rowconfigure(7, weight=10)
         self.frame_right.columnconfigure((0, 1, 2), weight=1)
         self.frame_right.columnconfigure(2, weight=0)
 
-        self.frame_panels = customtkinter.CTkFrame(master=self.frame_right, fg_color=None, bg_color=None)
-        self.frame_panels.grid(row=0, column=0, columnspan=3, rowspan=4, pady=20, padx=20, sticky="nsew")
+        self.frame_panels = customtkinter.CTkFrame(master=self.frame_right, fg_color="transparent", bg_color="transparent")
+        self.frame_panels.grid(row=1, column=0, columnspan=3, rowspan=4, pady=20, padx=20, sticky="nsew")
 
         # ============ frame_panels ============
 
+        imagepath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "images")
+        self.waste = customtkinter.CTkImage(light_image=Image.open(os.path.join(imagepath, "wastebin_light.png")),
+                                            size=(40, 40),dark_image=Image.open(os.path.join(imagepath, "wastebin_dark.png")))
         # configure grid layout (3x4)
         self.frame_panels.rowconfigure((0, 1, 2, 3), weight=1)
         self.frame_panels.columnconfigure((0, 1, 2), weight=1)
@@ -193,132 +199,144 @@ class ControlFrame(customtkinter.CTkFrame):
                                                height=148,
                                                width=175,
                                                text="1",
-                                               text_font=("Verdana", -40),
-                                               fg_color=None,
-                                               bg_color=None,
+                                               text_color=("black", "grey80"),
+                                               font=("Verdana", -40),
+                                               fg_color="transparent",
+                                               bg_color="transparent",
                                                border_width=2,
-                                               border_color=("black", "grey"),
+                                               border_color=("black", "grey80"),
                                                corner_radius=10,
                                                command=lambda *args: createInputFrame(self, 1))
         self.button2 = customtkinter.CTkButton(master=self.frame_panels,
                                                height=148,
                                                width=175,
                                                text="2",
-                                               text_font=("Verdana", -40),
-                                               fg_color=None,
-                                               bg_color=None,
+                                               text_color=("black", "grey80"),
+                                               font=("Verdana", -40),
+                                               fg_color="transparent",
+                                               bg_color="transparent",
                                                border_width=2,
-                                               border_color=("black", "grey"),
+                                               border_color=("black", "grey80"),
                                                corner_radius=10,
                                                command=lambda *args: createInputFrame(self, 2))
         self.button3 = customtkinter.CTkButton(master=self.frame_panels,
                                                height=148,
                                                width=175,
                                                text="3",
-                                               text_font=("Verdana", -40),
-                                               fg_color=None,
-                                               bg_color=None,
+                                               text_color=("black", "grey80"),
+                                               font=("Verdana", -40),
+                                               fg_color="transparent",
+                                               bg_color="transparent",
                                                border_width=2,
-                                               border_color=("black", "grey"),
+                                               border_color=("black", "grey80"),
                                                corner_radius=10,
                                                command=lambda *args: createInputFrame(self, 3))
         self.button4 = customtkinter.CTkButton(master=self.frame_panels,
                                                height=148,
                                                width=175,
                                                text="4",
-                                               text_font=("Verdana", -40),
-                                               fg_color=None,
-                                               bg_color=None,
+                                               text_color=("black", "grey80"),
+                                               font=("Verdana", -40),
+                                               fg_color="transparent",
+                                               bg_color="transparent",
                                                border_width=2,
-                                               border_color=("black", "grey"),
+                                               border_color=("black", "grey80"),
                                                corner_radius=10,
                                                command=lambda *args: createInputFrame(self, 4))
         self.button5 = customtkinter.CTkButton(master=self.frame_panels,
                                                height=148,
                                                width=175,
                                                text="5",
-                                               text_font=("Verdana", -40),
-                                               fg_color=None,
-                                               bg_color=None,
+                                               text_color=("black", "grey80"),
+                                               font=("Verdana", -40),
+                                               fg_color="transparent",
+                                               bg_color="transparent",
                                                border_width=2,
-                                               border_color=("black", "grey"),
+                                               border_color=("black", "grey80"),
                                                corner_radius=10,
                                                command=lambda *args: createInputFrame(self, 5))
         self.button6 = customtkinter.CTkButton(master=self.frame_panels,
                                                height=148,
                                                width=175,
                                                text="6",
-                                               text_font=("Verdana", -40),
-                                               fg_color=None,
-                                               bg_color=None,
+                                               text_color=("black", "grey80"),
+                                               font=("Verdana", -40),
+                                               fg_color="transparent",
+                                               bg_color="transparent",
                                                border_width=2,
-                                               border_color=("black", "grey"),
+                                               border_color=("black", "grey80"),
                                                corner_radius=10,
                                                command=lambda *args: createInputFrame(self, 6))
         self.button7 = customtkinter.CTkButton(master=self.frame_panels,
                                                height=148,
                                                width=175,
                                                text="7",
-                                               text_font=("Verdana", -40),
-                                               fg_color=None,
-                                               bg_color=None,
+                                               text_color=("black", "grey80"),
+                                               font=("Verdana", -40),
+                                               fg_color="transparent",
+                                               bg_color="transparent",
                                                border_width=2,
-                                               border_color=("black", "grey"),
+                                               border_color=("black", "grey80"),
                                                corner_radius=10,
                                                command=lambda *args: createInputFrame(self, 7))
         self.button8 = customtkinter.CTkButton(master=self.frame_panels,
                                                height=148,
                                                width=175,
                                                text="8",
-                                               text_font=("Verdana", -40),
-                                               fg_color=None,
-                                               bg_color=None,
+                                               text_color=("black", "grey80"),
+                                               font=("Verdana", -40),
+                                               fg_color="transparent",
+                                               bg_color="transparent",
                                                border_width=2,
-                                               border_color=("black", "grey"),
+                                               border_color=("black", "grey80"),
                                                corner_radius=10,
                                                command=lambda *args: createInputFrame(self, 8))
         self.button9 = customtkinter.CTkButton(master=self.frame_panels,
                                                height=148,
                                                width=175,
                                                text="9",
-                                               text_font=("Verdana", -40),
-                                               fg_color=None,
-                                               bg_color=None,
+                                               text_color=("black", "grey80"),
+                                               font=("Verdana", -40),
+                                               fg_color="transparent",
+                                               bg_color="transparent",
                                                border_width=2,
-                                               border_color=("black", "grey"),
+                                               border_color=("black", "grey80"),
                                                corner_radius=10,
                                                command=lambda *args: createInputFrame(self, 9))
         self.button10 = customtkinter.CTkButton(master=self.frame_panels,
                                                 height=148,
                                                 width=175,
                                                 text="10",
-                                                text_font=("Verdana", -40),
-                                                fg_color=None,
-                                                bg_color=None,
+                                                text_color=("black", "grey80"),
+                                                font=("Verdana", -40),
+                                                fg_color="transparent",
+                                                bg_color="transparent",
                                                 border_width=2,
-                                                border_color=("black", "grey"),
+                                                border_color=("black", "grey80"),
                                                 corner_radius=10,
                                                 command=lambda *args: createInputFrame(self, 10))
         self.button11 = customtkinter.CTkButton(master=self.frame_panels,
                                                 height=148,
                                                 width=175,
                                                 text="11",
-                                                text_font=("Verdana", -40),
-                                                fg_color=None,
-                                                bg_color=None,
+                                                text_color=("black", "grey80"),
+                                                font=("Verdana", -40),
+                                                fg_color="transparent",
+                                                bg_color="transparent",
                                                 border_width=2,
-                                                border_color=("black", "grey"),
+                                                border_color=("black", "grey80"),
                                                 corner_radius=10,
                                                 command=lambda *args: createInputFrame(self, 11))
         self.button12 = customtkinter.CTkButton(master=self.frame_panels,
                                                 height=148,
                                                 width=175,
-                                                text='waste',
-                                                text_font=("Verdana", -30),
-                                                fg_color=None,
-                                                bg_color=None,
+                                                text='',
+                                                image=self.waste,
+                                                font=("Verdana", -30),
+                                                fg_color="transparent",
+                                                bg_color="transparent",
                                                 border_width=2,
-                                                border_color=("black", "grey"),
+                                                border_color=("black", "grey80"),
                                                 corner_radius=10,
                                                 command=lambda *args: createInputFrame(self, 12),
                                                 state="disabled")
@@ -347,14 +365,14 @@ class ControlFrame(customtkinter.CTkFrame):
         self.button13 = customtkinter.CTkButton(master=self.frame_right,
                                                 text="Load from parameter file",
                                                 border_width=2,  # <- custom border_width
-                                                fg_color=None,  # <- no fg_color
-                                                command=self.simulate_protocol)
+                                                fg_color="transparent",  # <- no fg_color
+                                                command=self.load_from_parameterfile)
         self.button13.grid(row=8, column=1, columnspan=1, pady=10, padx=5, sticky="e")
 
         self.button14 = customtkinter.CTkButton(master=self.frame_right,
                                                 text="Generate Protocol",
                                                 border_width=2,  # <- custom border_width
-                                                fg_color=None,  # <- no fg_color
+                                                fg_color="transparent",  # <- no fg_color
                                                 command=self.generate_protocol)
         self.button14.grid(row=8, column=2, columnspan=1, pady=10, padx=5, sticky="")
 
@@ -422,9 +440,9 @@ class ControlFrame(customtkinter.CTkFrame):
     def change_appearance_mode(self):
         switch = self.switch_darkmode.get()
         if switch == "on":
-            self.config(customtkinter.set_appearance_mode("Dark"))
+            self.configure(customtkinter.set_appearance_mode("Dark"))
         else:
-            self.config(customtkinter.set_appearance_mode("Light"))
+            self.configure(customtkinter.set_appearance_mode("Light"))
 
     """
     The generate_protocol method reads all information of slots and pipets in the inputsFolder, creates a parameter file
@@ -450,7 +468,7 @@ class ControlFrame(customtkinter.CTkFrame):
             protocolFilename += ".py"
 
             # read in compound library:
-            with open('compLibrary.txt', 'r') as l:
+            with open(os.path.join(os.path.dirname(__file__),'compLibrary.txt'), 'r') as l:
                 reader = csv.reader(l, delimiter="\t")
                 lines = [entry for line in reader for entry in line]
 
@@ -624,7 +642,7 @@ class ControlFrame(customtkinter.CTkFrame):
                                       list(zip(names_conc_to_add, labels_to_add, conc_to_add))))
                 # If user allows, write new compounds to compLibrary
                 if answer == "yes":
-                    with open("compLibrary.txt", "a") as f:
+                    with open(os.path.join(os.path.dirname(__file__),'compLibrary.txt'), "a") as f:
                         for idx in range(len(names_conc_to_add)):
                             f.write("\n" + names_conc_to_add[idx] + "\t")
                             f.write(labels_to_add[idx].capitalize() + "\t")
@@ -639,6 +657,16 @@ class ControlFrame(customtkinter.CTkFrame):
                 e.msgbox("no prior information of pipet(s) saved. Specify name and position.", "Error")
                 return None
 
+            #if no plates defined for screen: error messsage to user
+            if plates == "":
+                easygui.msgbox("Add at least one well plate to the screen")
+                return None
+
+            #if no tipracks defined for screen: error message to user
+            if tips == "":
+                easygui.msgbox("Add at least one tip rack to the screen")
+                return None
+
             # write all information to parameter file
             paramFilename = protocolFilename.replace(".py", ".param.txt")
             paramFilePath = os.path.join(self.parent.UserPath, paramFilename)
@@ -651,14 +679,14 @@ class ControlFrame(customtkinter.CTkFrame):
 
             # generate the protocol
             ScriptBuilder.BuildWithMetadata(paramFilePath, os.path.join(self.parent.UserPath, protocolFilename),
-                                            self.name.get(), self.description.get(), self.author.get())
+                                            self.name.get(), self.description.get("0.0","end"), self.author.get())
 
     """
-    The simulate_protocol method allows the user to select an existing parameter file. The method then tries to write the 
+    The load_from_parameterfile method allows the user to select an existing parameter file. The method then tries to write the 
     contents of this file to temporary files located in the inputs folder.
     """
 
-    def simulate_protocol(self):
+    def load_from_parameterfile(self):
         # ensure the inputs folder exists
         try:
             isExist = os.path.exists(self.parent.inputsPath)
@@ -734,7 +762,7 @@ class ControlFrame(customtkinter.CTkFrame):
             all_screen_plates = screens_raw[4::6]
             all_screen_workVol = screens_raw[5::6]
             # read in compLibrary
-            with open('compLibrary.txt', 'r') as l:
+            with open(os.path.join(os.path.dirname(__file__),'compLibrary.txt'), 'r') as l:
                 reader = csv.reader(l, delimiter="\t")
                 lines = [entry for line in reader for entry in line]
             labels = lines[0::3]
@@ -801,7 +829,7 @@ class InputFrame(customtkinter.CTkFrame):
         self.frame_up.grid_propagate(False)
 
         # Title: slot + index
-        customtkinter.CTkLabel(master=self.frame_up, text="slot " + str(self.index), text_font=('Segoe UI', 11, BOLD)) \
+        customtkinter.CTkLabel(master=self.frame_up, text="slot " + str(self.index), font=('Segoe UI', 11, BOLD)) \
             .grid(row=0, column=0, columnspan=3, sticky="nsew", pady=(1, 10))
 
         # name container fill-in
@@ -915,7 +943,7 @@ class InputFrame(customtkinter.CTkFrame):
 
             #Title Compounds
             self.CompoundsLabel = customtkinter.CTkLabel(master=self.frame_compounds, text="Compounds",
-                                                         text_font=('Segoe UI', 10, BOLD))
+                                                         font=('Segoe UI', 10, BOLD))
             self.CompoundsLabel.grid(row=2, column=0, sticky="nw")
             self.CompoundsLabel.grid_propagate(False)
 
@@ -941,8 +969,8 @@ class InputFrame(customtkinter.CTkFrame):
             self.MQposition.grid(row=5, column=1)
 
             #redirect to page in OT-2 API V2 with info on Tube rack position labels
-            self.HelpPositions = customtkinter.CTkButton(master=self.frame_compounds, text="?", corner_radius=5,
-                                                         width=0.1, height=0.1, fg_color="gray33",
+            self.HelpPositions = customtkinter.CTkButton(master=self.frame_compounds, text="?",
+                                                         width=0.2, height=0.1, fg_color="grey33",
                                                          command=self.openHelpPositions)
             self.HelpPositions.grid(row=5, column=2, sticky="w", padx=5)
 
