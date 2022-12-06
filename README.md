@@ -1,6 +1,7 @@
 # fastKris
 FastKris is a Python tool to automate crystalisation screens using OpenTrons robotics, saving much time, annoying concentration calculations and repetitive pipetting labour.
 A GUI allows to easily define a screening experiment and to build a functional OpenTrons protocol script, which is ready-to-use for the [OT-2 pipetting robot](https://opentrons.com/).
+
 **No coding experience required, only click-and-play!**
 
 **--> Read the user's guide!**
@@ -44,13 +45,14 @@ Essentials:
 	- [NumPy](https://numpy.org/install/) (>= 1.17.4)
 	- [OpenTrons API](https://docs.opentrons.com/v2/writing.html#installing) (>= 6.1.0)
 	- [customTkinter](https://github.com/TomSchimansky/CustomTkinter) (>= 4.6.3)
+	- [Pillow](https://pillow.readthedocs.io/en/stable/installation.html) (>= 9.3.0)
 	- [XlsxWriter](https://xlsxwriter.readthedocs.io/getting_started.html) (>= 3.0.3)
 	- [easygui](https://pypi.org/project/easygui/) (>= 0.98.3)
 
 Install these Python modules all at once using the following command.
 
 ```
-pip install numpy opentrons customtkinter XlsxWriter easygui
+pip install numpy opentrons customtkinter Pillow XlsxWriter easygui
 ```
 ## Usage
 
