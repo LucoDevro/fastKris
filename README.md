@@ -1,7 +1,6 @@
 # fastKris
 FastKris is a Python tool to automate crystalisation screens using OpenTrons robotics, saving much time, annoying concentration calculations and repetitive pipetting labour.
 A GUI allows to easily define a screening experiment and to build a functional OpenTrons protocol script, which is ready-to-use for the [OT-2 pipetting robot](https://opentrons.com/).
-
 **No coding experience required, only click-and-play!**
 
 **--> Read the user's guide!**
@@ -99,9 +98,3 @@ You can test your protocol more extensively by simulating it in a terminal. Ever
 - Total stock volume requirements, so that you can check whether there is enough stock left.
 - A summary log for each volume transfer.
 - A more detailed sequence of action logs undertaken by the OpenTrons.
-
-Access the simulation shell by `cd`'ing to your protocol and type
-
-```
-opentrons_simulate protocol.py
-```
