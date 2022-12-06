@@ -100,3 +100,8 @@ You can test your protocol more extensively by simulating it in a terminal. Ever
 - Total stock volume requirements, so that you can check whether there is enough stock left.
 - A summary log for each volume transfer.
 - A more detailed sequence of action logs undertaken by the OpenTrons.
+
+To simulate a protocol, `cd` to its location and type
+```
+opentrons_simulate <your-protocol>.py
+```
