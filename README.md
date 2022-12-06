@@ -44,7 +44,7 @@ Essentials:
 - Python modules
 	- [NumPy](https://numpy.org/install/) (>= 1.17.4)
 	- [OpenTrons API](https://docs.opentrons.com/v2/writing.html#installing) (>= 6.1.0)
-	- [customTkinter](https://github.com/TomSchimansky/CustomTkinter) (>= 4.6.3)
+	- [customTkinter](https://github.com/TomSchimansky/CustomTkinter) (>= 5.0.1)
 	- [Pillow](https://pillow.readthedocs.io/en/stable/installation.html) (>= 9.3.0)
 	- [XlsxWriter](https://xlsxwriter.readthedocs.io/getting_started.html) (>= 3.0.3)
 	- [easygui](https://pypi.org/project/easygui/) (>= 0.98.3)
