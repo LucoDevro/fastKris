@@ -829,7 +829,7 @@ class InputFrame(customtkinter.CTkFrame):
         self.frame_up.grid_propagate(False)
 
         # Title: slot + index
-        customtkinter.CTkLabel(master=self.frame_up, text="slot " + str(self.index), font=('Segoe UI', 11, BOLD)) \
+        customtkinter.CTkLabel(master=self.frame_up, text="slot " + str(self.index), font=('Segoe UI', 15, BOLD)) \
             .grid(row=0, column=0, columnspan=3, sticky="nsew", pady=(1, 10))
 
         # name container fill-in
