@@ -114,7 +114,7 @@ class ControlFrame(customtkinter.CTkFrame):
         self.label_6 = customtkinter.CTkLabel(master=self.frame_left, text="Description:")
         self.label_6.grid(row=4, column=0, pady=1, padx=0, sticky="ew")
 
-        self.description = customtkinter.CTkTextbox(master=self.frame_left, width=400, height=150, border_width=2)
+        self.description = customtkinter.CTkTextbox(master=self.frame_left, width=400, height=130, border_width=2)
         self.description.grid(row=5, column=0, columnspan=2, pady=0, padx=10, sticky="ns")
 
         # Title: Pipets
@@ -679,8 +679,8 @@ class ControlFrame(customtkinter.CTkFrame):
 
             # generate the protocol
             ScriptBuilder.BuildWithMetadata(paramFilePath, os.path.join(self.parent.UserPath, protocolFilename),
-                                            self.name.get(), self.description.get("0.0","end"), self.author.get())
-
+                                            self.name.get(), self.description.get("0.0","end").replace("\n", ""), self.author.get())
+            print((self.description.get("0.0","end")))
     """
     The load_from_parameterfile method allows the user to select an existing parameter file. The method then tries to write the 
     contents of this file to temporary files located in the inputs folder.
@@ -987,7 +987,7 @@ class InputFrame(customtkinter.CTkFrame):
                         positions = dict["positions"].split(",")
                         # extract the position of compound 'MQ'. If this info isn't stored, ignore
                         for j in range(len(compounds)):
-                            if 'MQ' == compounds[j]:
+                            if 'MQ (0)' == compounds[j]:
                                 # in case no position previously given by user, suppress AttributeError
                                 try:
                                     self.MQposition.insert(END, re.search(r"/(\w+)", positions[j]).group(1))
@@ -1140,7 +1140,7 @@ class InputFrame(customtkinter.CTkFrame):
                                 # TODO: add warning to let the user now they were switched
                         positions += tuberackpos + "/" + data[i * 2 + 1][4] + ","
                         ranges += str(data[i * 2 + 1][2]) + "-" + str(data[i * 2 + 1][3]) + ","
-                    names_conc += "MQ"
+                    names_conc += "MQ (0)"
                     ranges = ranges[:-1]
                     types_compounds = types_compounds[:-1]
                     positions += tuberackpos + "/" + self.MQposition.get()
