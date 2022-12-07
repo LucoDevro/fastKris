@@ -568,7 +568,7 @@ class ControlFrame(customtkinter.CTkFrame):
                             for i in names_conc:
                                 # get concentration, if regex matching fails: error message to the user
                                 try:
-                                    concs.append(re.search(r"([0-9]+)", i.split(" (")[1]).group(1))
+                                    concs.append(re.search(r"([\.0-9]+)", i.split(" (")[1]).group(1))
                                 except AttributeError:
                                     e.msgbox(
                                         "Unrecognized or empty value for one of the concentrations in: " + filename,
@@ -1024,12 +1024,12 @@ class InputFrame(customtkinter.CTkFrame):
                         # get name of each compound
                         names = [i.split(" (")[0] for i in names_conc]
                         # get unit for each compound
-                        units = [re.search(r"[0-9]+([%M])", i.split(" (")[1]).group(1) for i in names_conc]
+                        units = [re.search(r"[\.0-9]+([%M])", i.split(" (")[1]).group(1) for i in names_conc]
                         #get concentration for each compound
                         concs = []
                         for i in names_conc:
                             try:
-                                concs.append(re.search(r"([0-9]+)", i.split(" (")[1]).group(1))
+                                concs.append(re.search(r"([\.0-9]+)", i.split(" (")[1]).group(1))
                             except AttributeError:
                                 concs.append("")
                         #get range for each compound
