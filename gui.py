@@ -568,7 +568,7 @@ class ControlFrame(customtkinter.CTkFrame):
                             for i in names_conc:
                                 # get concentration, if regex matching fails: error message to the user
                                 try:
-                                    concs.append(re.search(r"([\.0-9]+)", i.split(" (")[1]).group(1))
+                                    concs.append(re.search(r"([\.0-9]+)", i.split(" (")[-1]).group(1))
                                 except AttributeError:
                                     e.msgbox(
                                         "Unrecognized or empty value for one of the concentrations in: " + filename,
@@ -680,7 +680,6 @@ class ControlFrame(customtkinter.CTkFrame):
             # generate the protocol
             ScriptBuilder.BuildWithMetadata(paramFilePath, os.path.join(self.parent.UserPath, protocolFilename),
                                             self.name.get(), self.description.get("0.0","end").replace("\n", ""), self.author.get())
-            print((self.description.get("0.0","end")))
     """
     The load_from_parameterfile method allows the user to select an existing parameter file. The method then tries to write the 
     contents of this file to temporary files located in the inputs folder.
@@ -987,7 +986,7 @@ class InputFrame(customtkinter.CTkFrame):
                         positions = dict["positions"].split(",")
                         # extract the position of compound 'MQ'. If this info isn't stored, ignore
                         for j in range(len(compounds)):
-                            if 'MQ (0)' == compounds[j]:
+                            if 'MQ' == compounds[j]:
                                 # in case no position previously given by user, suppress AttributeError
                                 try:
                                     self.MQposition.insert(END, re.search(r"/(\w+)", positions[j]).group(1))
@@ -1022,14 +1021,14 @@ class InputFrame(customtkinter.CTkFrame):
                         types_compounds = dict["types_compounds"].split(",")
                         names_conc = dict["names_conc"].split(",")[:-1]
                         # get name of each compound
-                        names = [i.split(" (")[0] for i in names_conc]
+                        names = [" (".join(list(map(str,i.split(" (")[:-1]))) for i in names_conc]
                         # get unit for each compound
-                        units = [re.search(r"[\.0-9]+([%M])", i.split(" (")[1]).group(1) for i in names_conc]
+                        units = [re.search(r"([%M])", i.split(" (")[-1]).group(1) for i in names_conc]
                         #get concentration for each compound
                         concs = []
                         for i in names_conc:
                             try:
-                                concs.append(re.search(r"([\.0-9]+)", i.split(" (")[1]).group(1))
+                                concs.append(re.search(r"([\.0-9]+)", i.split(" (")[-1]).group(1))
                             except AttributeError:
                                 concs.append("")
                         #get range for each compound
@@ -1140,7 +1139,7 @@ class InputFrame(customtkinter.CTkFrame):
                                 # TODO: add warning to let the user now they were switched
                         positions += tuberackpos + "/" + data[i * 2 + 1][4] + ","
                         ranges += str(data[i * 2 + 1][2]) + "-" + str(data[i * 2 + 1][3]) + ","
-                    names_conc += "MQ (0)"
+                    names_conc += "MQ"
                     ranges = ranges[:-1]
                     types_compounds = types_compounds[:-1]
                     positions += tuberackpos + "/" + self.MQposition.get()
