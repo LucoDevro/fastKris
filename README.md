@@ -4,7 +4,7 @@ A GUI allows to easily define a screening experiment and to build a functional O
 
 **No coding experience required, only click-and-play!**
 
-**--> Read the user's guide!**
+**--> Read the [user's guide](user-guide.pdf)! <--**
 
 ![](images/GUI_initial.png)
 | _Initial window of the GUI_
@@ -56,7 +56,7 @@ pip install numpy opentrons customtkinter Pillow XlsxWriter easygui
 ```
 ## Usage
 
-**--> For a tutorial and more instructions about how to use this tool: read the official user's guide.**
+**--> For a tutorial and more instructions about how to use this tool: check out the official [user's guide](user-guide.pdf)! <--**
 
 ### Export a library of compounds.
 FastKris requires compounds to be registered in its compound library. This is a simple tab-separated text file named `compLibrary.txt` with header "Label - Compound type - Stock concentration", that should be located **in the same folder as the script builder `ScriptBuilder.py`**. 
