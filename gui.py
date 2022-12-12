@@ -117,13 +117,13 @@ class ControlFrame(customtkinter.CTkFrame):
         self.description = customtkinter.CTkTextbox(master=self.frame_left, width=400, height=130, border_width=2)
         self.description.grid(row=5, column=0, columnspan=2, pady=0, padx=10, sticky="ns")
 
-        # Title: Pipets
+        # Title: Pipettes
         self.label_1 = customtkinter.CTkLabel(master=self.frame_left,
-                                              text="Pipets",
+                                              text="Pipettes",
                                               font=("Roboto Medium", -16))  # font name and size in px
         self.label_1.grid(row=11, column=0, columnspan=2, pady=10, padx=10)
 
-        # initialize the hasTwoPipets attribute. True indicates that two input rows are present in the "Pipets" section
+        # initialize the hasTwoPipets attribute. True indicates that two input rows are present in the "Pipettes" section
         self.hasTwoPipets = False
 
         # create frame for pipets
@@ -377,7 +377,7 @@ class ControlFrame(customtkinter.CTkFrame):
         self.button14.grid(row=8, column=2, columnspan=1, pady=10, padx=5, sticky="")
 
     """
-    The addPipet method inserts a second row in the "Pipets" section where information of a second pipet can be specified. 
+    The addPipet method inserts a second row in the "Pipettes" section where information of a second pipet can be specified. 
     It removes the AddPipetButton in the first row and creates a RemovePipetButton in the second row to enforce that 
     always at least one and at most two pipets are specified.
     """
@@ -401,7 +401,7 @@ class ControlFrame(customtkinter.CTkFrame):
         self.AddPipetButton.grid_remove()
         self.hasTwoPipets = True
 
-    # The removePipet method removes the input row for the second pipet in the "Pipets" section
+    # The removePipet method removes the input row for the second pipet in the "Pipettes" section
     def removePipet(self):
         Lst = self.frame_pipet.grid_slaves(row=2)
         for l in Lst:
@@ -410,7 +410,7 @@ class ControlFrame(customtkinter.CTkFrame):
         self.hasTwoPipets = False
 
     """
-    The pipetApply method writes all currently specified information in the "Pipets" section to a 'pipets.txt' file 
+    The pipetApply method writes all currently specified information in the "Pipettes" section to a 'pipets.txt' file 
     in the inputs folder. If such a file is already present, its content will be overwritten.
     """
 
@@ -427,7 +427,7 @@ class ControlFrame(customtkinter.CTkFrame):
         else:
             e.msgbox("First pipet not specified", "Error")
             return None
-        # same if second input row present in "Pipets" section
+        # same if second input row present in "Pipettes" section
         if self.hasTwoPipets == True:
             if self.AddPipet2.get() != "":
                 with open(os.path.join(self.parent.inputsPath, "pipets.txt"), "a") as f:
@@ -744,7 +744,7 @@ class ControlFrame(customtkinter.CTkFrame):
                     f.write(instrumentInput[i] + "\n")
                     f.write(instrumentLocation[i] + "\n")
 
-            # after the new pipets information is loaded, update the information displayed in the "Pipets" section
+            # after the new pipets information is loaded, update the information displayed in the "Pipettes" section
             self.AddPipet.delete(0, END)
             self.AddPipet.insert(END, instrumentInput[0])
             self.optionmenu_pip.set(instrumentLocation[0])
