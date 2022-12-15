@@ -1,6 +1,6 @@
 # fastKris
-FastKris is a Python tool to automate crystalisation screens using OpenTrons robotics, saving much time, annoying concentration calculations and repetitive pipetting labour.
-A GUI allows to easily define a screening experiment and to build a functional OpenTrons protocol script, which is ready-to-use for the [OT-2 pipetting robot](https://opentrons.com/).
+FastKris is a Python tool to automate crystalisation screens using Opentrons robotics, saving much time, annoying concentration calculations and repetitive pipetting labour.
+A GUI allows to easily define a screening experiment and to build a functional Opentrons protocol script, which is ready-to-use for the [OT-2 pipetting robot](https://opentrons.com/).
 
 **No coding experience required, only click-and-play!**
 
@@ -36,14 +36,14 @@ Just download the contents of this repository to a location you can easily find 
 Nice-to-haves:
 
 - A spreadsheeting program (Excel and alike)
-- The [OpenTrons app](https://opentrons.com/ot-app/)
+- The [Opentrons app](https://opentrons.com/ot-app/)
 
 Essentials:
 
 - Python 3 (>= 3.8.10)
 - Python modules
 	- [NumPy](https://numpy.org/install/) (>= 1.17.4)
-	- [OpenTrons API](https://docs.opentrons.com/v2/writing.html#installing) (>= 6.1.0)
+	- [Opentrons API](https://docs.opentrons.com/v2/writing.html#installing) (>= 6.1.0)
 	- [customTkinter](https://github.com/TomSchimansky/CustomTkinter) (>= 5.0.1)
 	- [Pillow](https://pillow.readthedocs.io/en/stable/installation.html) (>= 9.3.0)
 	- [XlsxWriter](https://xlsxwriter.readthedocs.io/getting_started.html) (>= 3.0.3)
@@ -83,23 +83,23 @@ These filenames are the default ones, so in that case, you can also just type
 python ScriptBuilder.py
 ```
 ### Execute your protocol
-#### OpenTrons
-*There are multiple ways to [execute an OpenTrons script](https://docs.opentrons.com/v2/writing.html#simulate-block), but FastKris has been tested using the OpenTrons app and benefits from its protocol analysis step.*
+#### Opentrons
+*There are multiple ways to [execute an Opentrons script](https://docs.opentrons.com/v2/writing.html#simulate-block), but FastKris has been tested using the Opentrons app and benefits from its protocol analysis step.*
 
-Import your protocol in the OpenTrons app, which will run consistency checks while loading. If these fail, an error message will be displayed. Redefine and regenerate your protocol using the previous steps to mitigate this.
+Import your protocol in the Opentrons app, which will run consistency checks while loading. If these fail, an error message will be displayed. Redefine and regenerate your protocol using the previous steps to mitigate this.
 
-*There is no need to delete and reimport your protocol in the OpenTrons app. By clicking `Show in folder` from the menu top right, you can access the folder in which the app saves your protocol file. Just overwrite this file with your regenerated protocol and click `Reanalyze` from this same menu to update the protocol in the app.*
+*There is no need to delete and reimport your protocol in the Opentrons app. By clicking `Show in folder` from the menu top right, you can access the folder in which the app saves your protocol file. Just overwrite this file with your regenerated protocol and click `Reanalyze` from this same menu to update the protocol in the app.*
 
-After a successful protocol analysis, click `Run protocol` and then your OpenTrons device. This will upload your protocol to the OpenTrons.
+After a successful protocol analysis, click `Run protocol` and then your Opentrons device. This will upload your protocol to the Opentrons.
 
-**Do not forget to load the instrument calibrations before starting the actual execution!** To do so, open the calibration menu below, which triggers a prompt to load these, to pop up. It is recommended to redo calibration after each start-up of your OpenTrons device.
+**Do not forget to load the instrument calibrations before starting the actual execution!** To do so, open the calibration menu below, which triggers a prompt to load these, to pop up. It is recommended to redo calibration after each start-up of your Opentrons device.
 #### Verbose simulation terminal
 You can test your protocol more extensively by simulating it in a terminal. Every protocol script is stuffed with stdout logs, which can be displayed in a terminal. These logs include
 
 - Matrices in the format of the well plate indicating which concentration is prepared for each compound in each well.
 - Total stock volume requirements, so that you can check whether there is enough stock left.
 - A summary log for each volume transfer.
-- A more detailed sequence of action logs undertaken by the OpenTrons.
+- A more detailed sequence of action logs undertaken by the Opentrons.
 
 To simulate a protocol, `cd` to its location and type
 ```
