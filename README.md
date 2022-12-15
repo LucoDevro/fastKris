@@ -84,7 +84,7 @@ python ScriptBuilder.py
 ```
 ### Execute your protocol
 #### Opentrons
-*There are multiple ways to [execute an Opentrons script](https://docs.opentrons.com/v2/writing.html#simulate-block), but FastKris has been tested using the Opentrons app and benefits from its protocol analysis step.*
+*There are multiple ways to [execute an Opentrons script](https://docs.opentrons.com/v2/writing.html#simulate-block), but fastKris has been tested using the Opentrons app and benefits from its protocol analysis step.*
 
 Import your protocol in the Opentrons app, which will run consistency checks while loading. If these fail, an error message will be displayed. Redefine and regenerate your protocol using the previous steps to mitigate this.
 
